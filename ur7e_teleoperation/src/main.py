@@ -92,13 +92,42 @@ ur5e.set_dofs_force_range(
     dofs_idx,
 )
 
+# ── Drive arm to home joint config and settle ──────────────────────────
+home_joint_angles = np.array([
+     0.0,      # shoulder_pan
+    -1.5708,   # shoulder_lift  (-90°)
+     1.5708,   # elbow          (+90°)
+    -1.5708,   # wrist_1        (-90°)
+    -1.5708,   # wrist_2        (-90°)
+     0.0,      # wrist_3
+])
+
+print("[INIT] Moving arm to home pose — please wait...")
+for _ in range(300):
+    ur5e.control_dofs_position(home_joint_angles, dofs_idx_local=dofs_idx)
+    scene.step()
+
+# read back actual EE pose after settling
+actual_pos  = ur5e.get_link('wrist_3_link').get_pos()
+actual_quat = ur5e.get_link('wrist_3_link').get_quat()
+if hasattr(actual_pos, 'cpu'):
+    actual_pos  = actual_pos.cpu().numpy()
+    actual_quat = actual_quat.cpu().numpy()
+
+ee_home_pos  = np.array(actual_pos,  dtype=float)
+ee_home_quat = np.array(actual_quat, dtype=float)
+ee_home_quat /= np.linalg.norm(ee_home_quat)
+
+print(f"[INIT] Home pos  = {np.round(ee_home_pos,  3)}")
+print(f"[INIT] Home quat = {np.round(ee_home_quat, 4)}")
+print("[INIT] Teleoperation ready")
+
+# ── IMU state ──────────────────────────────────────────────────────────
 imu_pos      = np.array([1.5, 0.0, 1.0], dtype=float)
 imu_quat     = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
 imu_ref_pos  = imu_pos.copy()
 imu_ref_quat = imu_quat.copy()
 
-ee_home_pos    = np.array([0.3, 0.0, 1.2], dtype=float)
-ee_home_quat   = np.array([0.0, 1.0, 0.0, 0.0], dtype=float)
 ee_target_pos  = ee_home_pos.copy()
 ee_target_quat = ee_home_quat.copy()
 
@@ -263,33 +292,22 @@ print("=" * 52)
 
 try:
     while True:
-        # 1. read keys → update IMU pose
         update_imu()
-
-        # 2. clamp IMU rotation to 60° max
         clamp_imu_rotation()
-
-        # 3. convert IMU pose → EE target
         imu_to_ee_target()
 
-        # 4. move visual IMU box
         imu_entity.set_pos(imu_pos)
         imu_entity.set_quat(imu_quat)
 
-        # 5. solve IK with safety checks
         raw_qpos = safe_ik(ee_target_pos, ee_target_quat)
 
         if raw_qpos is None:
             scene.step()
             continue
 
-        # 6. smooth the motion
         final_qpos = smooth_ik(raw_qpos)
 
-        # 7. send to arm
         ur5e.control_dofs_position(final_qpos, dofs_idx_local=dofs_idx)
-
-        # 8. step physics
         scene.step()
 
 except KeyboardInterrupt:
