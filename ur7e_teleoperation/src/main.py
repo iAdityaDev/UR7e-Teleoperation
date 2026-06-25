@@ -92,14 +92,13 @@ ur5e.set_dofs_force_range(
     dofs_idx,
 )
 
-# ── Drive arm to home joint config and settle ──────────────────────────
 home_joint_angles = np.array([
-     0.0,      # shoulder_pan
-    -1.5708,   # shoulder_lift  (-90°)
-     1.5708,   # elbow          (+90°)
-    -1.5708,   # wrist_1        (-90°)
-    -1.5708,   # wrist_2        (-90°)
-     0.0,      # wrist_3
+     0.0,     
+    -1.5708,  
+     1.5708,  
+    -1.5708,  
+    -1.5708,   
+     0.0,      
 ])
 
 print("[INIT] Moving arm to home pose — please wait...")
@@ -107,7 +106,6 @@ for _ in range(300):
     ur5e.control_dofs_position(home_joint_angles, dofs_idx_local=dofs_idx)
     scene.step()
 
-# read back actual EE pose after settling
 actual_pos  = ur5e.get_link('wrist_3_link').get_pos()
 actual_quat = ur5e.get_link('wrist_3_link').get_quat()
 if hasattr(actual_pos, 'cpu'):
