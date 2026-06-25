@@ -49,6 +49,29 @@ imu_entity = scene.add_entity(
     gs.morphs.Box(size=(0.06, 0.04, 0.01), pos=(1.5, 0.0, 1.0), fixed=True)
 )
 
+
+human = scene.add_entity(
+    gs.morphs.URDF(
+        file='/home/deviant/human-model-generator/code/models/humanModels/kevin_ultrasound.urdf',
+        pos=(0.6, 0.0, 0.55),   # x=3.0 as you set
+        euler=(0,270, 90),
+        fixed=False,             # fixed=True so it doesn't fall over
+    )
+)
+
+table2 = scene.add_entity(
+    gs.morphs.Box(size=(0.7, 1.5, 0.02), pos=(0.7, 0.0, 0.4), fixed=True)
+)
+
+leg_height2, leg_size2 = 0.4, 0.05
+for pos in [
+    (0.7+0.3,  0.7, leg_height2/2),
+    (0.7+0.3, -0.7, leg_height2/2),
+    (0.7-0.3,  0.7, leg_height2/2),
+    (0.7-0.3, -0.7, leg_height2/2),
+]:
+    scene.add_entity(gs.morphs.Box(size=(leg_size2, leg_size2, leg_height2), pos=pos, fixed=True))
+
 scene.build()
 
 keys_pressed = set()
