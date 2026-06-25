@@ -1,0 +1,1665 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<robot name="HumanModel">
+  <link name="Pelvis">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="6.9797" />
+      <inertia ixx="0.06863357540044689" ixy="0.0" ixz="0.0" iyy="0.03925570388307751" iyz="0.0" izz="0.0882690902673694" />
+    </inertial>
+    <collision>
+      <geometry>
+        <box size="0.225    0.318015 0.12987 " />
+      </geometry>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/Pelvis.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/Pelvis_RightRecAbd.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/Pelvis_RightErcSpin.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/Pelvis_LeftRecAbd.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/Pelvis_LeftErcSpin.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/Pelvis_SpinalCord.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+    <material name="bone"><color rgba="0.9608 0.9608 0.8627 1.0" /></material></visual></link>
+  <link name="L5_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="L5">
+    <inertial>
+      <origin xyz="0.0 0.0 0.02455875" rpy="0.0 0.0 0.0" />
+      <mass value="1.7169" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <box size="0.06      0.1       0.0491175" />
+      </geometry>
+      <origin xyz="0.0 0.0 0.02455875" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/L5.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.02455875" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/L5_LeftErcSpin.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.02455875" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/L5_LeftRecAbd.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.02455875" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/L5_RightErcSpin.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.02455875" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/L5_RightRecAbd.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.02455875" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/L5_SpinalCord.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.02455875" rpy="0.0 0.0 0.0" />
+    <material name="bone"><color rgba="0.9608 0.9608 0.8627 1.0" /></material></visual></link>
+  <link name="L3_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="L3">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0374625" rpy="0.0 0.0 0.0" />
+      <mass value="2.6196" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <box size="0.06     0.1      0.074925" />
+      </geometry>
+      <origin xyz="0.0 0.0 0.0374625" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/L3.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0374625" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/L3_LeftErcSpin.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0374625" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/L3_LeftRecAbd.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0374625" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/L3_RightErcSpin.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0374625" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/L3_RightRecAbd.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0374625" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/L3_SpinalCord.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0374625" rpy="0.0 0.0 0.0" />
+    <material name="bone"><color rgba="0.9608 0.9608 0.8627 1.0" /></material></visual></link>
+  <link name="T12_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="T12">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0437895" rpy="0.0 0.0 0.0" />
+      <mass value="3.0621" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <box size="0.06     0.1      0.087579" />
+      </geometry>
+      <origin xyz="0.0 0.0 0.0437895" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/T12.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0437895" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/T12_LeftErcSpin.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0437895" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/T12_LeftRecAbd.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0437895" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/T12_RightErcSpin.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0437895" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/T12_RightRecAbd.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0437895" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/T12_SpinalCord.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0437895" rpy="0.0 0.0 0.0" />
+    <material name="bone"><color rgba="0.9608 0.9608 0.8627 1.0" /></material></visual></link>
+  <link name="T8_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="T8_f2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="T8">
+    <inertial>
+      <origin xyz="0.0 0.0 0.06901425" rpy="0.0 0.0 0.0" />
+      <mass value="4.8262" />
+      <inertia ixx="0.015972506708744665" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <box size="0.06      0.143745  0.1380285" />
+      </geometry>
+      <origin xyz="0.0 0.0 0.06901425" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/T8.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.06901425" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/T8_LeftErcSpin.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.06901425" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/T8_RightErcSpin.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.06901425" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/T8_SpinalCord.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.06901425" rpy="0.0 0.0 0.0" />
+    <material name="bone"><color rgba="0.9608 0.9608 0.8627 1.0" /></material></visual></link>
+  <link name="C7Right_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="C7Right_f2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="C7Left_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="C7Left_f2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RightShoulder">
+    <inertial>
+      <origin xyz="0.0 -0.0718725 0.0" rpy="1.5708 0.0 0.0" />
+      <mass value="3.0857" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <cylinder radius="0.0445633840657307" length="0.143745" />
+      </geometry>
+      <origin xyz="0.0 -0.0718725 0.0" rpy="1.5708 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightShoulder.obj" scale="0.96502777 1.         1.        " /></geometry><origin xyz="0.0 -0.0718725 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual></link>
+  <link name="LeftShoulder">
+    <inertial>
+      <origin xyz="0.0 0.0718725 0.0" rpy="1.5708 0.0 0.0" />
+      <mass value="3.0857" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <cylinder radius="0.0445633840657307" length="0.143745" />
+      </geometry>
+      <origin xyz="0.0 0.0718725 0.0" rpy="1.5708 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftShoulder.obj" scale="0.96502777 1.         1.        " /></geometry><origin xyz="0.0 0.0718725 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual></link>
+  <link name="Neck_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="Neck_f2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="Neck">
+    <inertial>
+      <origin xyz="0.0 0.0 0.04329" rpy="0.0 0.0 0.0" />
+      <mass value="1.1446" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <cylinder radius="0.050929581789406514" length="0.08658" />
+      </geometry>
+      <origin xyz="0.0 0.0 0.04329" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/Neck.obj" scale="1.01535801 1.01535801 1.        " /></geometry><origin xyz="0.0 0.0 0.04329" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/Neck_SpinalCord.obj" scale="1.01535801 1.01535801 1.        " /></geometry><origin xyz="0.0 0.0 0.04329" rpy="0.0 0.0 0.0" />
+    <material name="bone"><color rgba="0.9608 0.9608 0.8627 1.0" /></material></visual></link>
+  <link name="Head_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="Head">
+    <inertial>
+      <origin xyz="0.0 0.0 0.108225" rpy="0.0 0.0 0.0" />
+      <mass value="2.8733" />
+      <inertia ixx="0.013461583616325" ixy="0.0" ixz="0.0" iyy="0.013461583616325" iyz="0.0" izz="0.013461583616325" />
+    </inertial>
+    <collision>
+      <geometry>
+        <sphere radius="0.108225" />
+      </geometry>
+      <origin xyz="0.0 0.0 0.108225" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/Head.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.108225" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual></link>
+  <link name="RightShoulder_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RightShoulder_f2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RightUpperArm">
+    <inertial>
+      <origin xyz="0.0 -0.154845 0.0" rpy="1.5708 0.0 0.0" />
+      <mass value="1.5517" />
+      <inertia ixx="0.013172068593420799" ixy="0.0" ixz="0.0" iyy="0.013172068593420799" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <cylinder radius="0.0445633840657307" length="0.30969" />
+      </geometry>
+      <origin xyz="0.0 -0.154845 0.0" rpy="1.5708 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightUpperArm.obj" scale="0.96502777 0.96502777 1.        " /></geometry><origin xyz="0.0 -0.154845 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightUpperArm_RightTricBrac.obj" scale="0.96502777 0.96502777 1.        " /></geometry><origin xyz="0.0 -0.154845 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightUpperArm_RightBicBrac.obj" scale="0.96502777 0.96502777 1.        " /></geometry><origin xyz="0.0 -0.154845 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual></link>
+  <link name="RightForeArm_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RightForeArm">
+    <inertial>
+      <origin xyz="0.0 -0.121545 0.0" rpy="1.5708 0.0 0.0" />
+      <mass value="0.885" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <cylinder radius="0.03501408748021698" length="0.24309" />
+      </geometry>
+      <origin xyz="0.0 -0.121545 0.0" rpy="1.5708 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightForeArm.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 -0.121545 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightForeArm_RightFlexCarp.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 -0.121545 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightForeArm_RightExtCarp.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 -0.121545 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual></link>
+  <link name="RightHand_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RightHand">
+    <inertial>
+      <origin xyz="0.0 -0.08991 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.34809999999999997" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <box size="0.085   0.17982 0.025  " />
+      </geometry>
+      <origin xyz="0.0 -0.08991 0.0" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightHand.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 -0.08991 0.0" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual></link>
+  <link name="RightHandCOM">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+    </link>
+  <link name="LeftShoulder_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="LeftShoulder_f2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="LeftUpperArm">
+    <inertial>
+      <origin xyz="0.0 0.154845 0.0" rpy="1.5708 0.0 0.0" />
+      <mass value="1.5517" />
+      <inertia ixx="0.013172068593420799" ixy="0.0" ixz="0.0" iyy="0.013172068593420799" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <cylinder radius="0.0445633840657307" length="0.30969" />
+      </geometry>
+      <origin xyz="0.0 0.154845 0.0" rpy="1.5708 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftUpperArm.obj" scale="0.96502777 0.96502777 1.        " /></geometry><origin xyz="0.0 0.154845 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftUpperArm_LeftTricBrac.obj" scale="0.96502777 0.96502777 1.        " /></geometry><origin xyz="0.0 0.154845 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftUpperArm_LeftBicBrac.obj" scale="0.96502777 0.96502777 1.        " /></geometry><origin xyz="0.0 0.154845 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual></link>
+  <link name="LeftForeArm_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="LeftForeArm">
+    <inertial>
+      <origin xyz="0.0 0.121545 0.0" rpy="1.5708 0.0 0.0" />
+      <mass value="0.885" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <cylinder radius="0.03501408748021698" length="0.24309" />
+      </geometry>
+      <origin xyz="0.0 0.121545 0.0" rpy="1.5708 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftForeArm.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 0.121545 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftForeArm_LeftFlexCarp.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 0.121545 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftForeArm_LeftExtCarp.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 0.121545 0.0" rpy="1.5708 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual></link>
+  <link name="LeftHand_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="LeftHand">
+    <inertial>
+      <origin xyz="0.0 0.08991 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.34809999999999997" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <box size="0.085   0.17982 0.025  " />
+      </geometry>
+      <origin xyz="0.0 0.08991 0.0" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftHand.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.08991 0.0" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual></link>
+  <link name="LeftHandCOM">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+    </link>
+  <link name="RightUpperLeg_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RightUpperLeg_f2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RightUpperLeg">
+    <inertial>
+      <origin xyz="0.0 0.0 -0.2039625" rpy="0.0 0.0 0.0" />
+      <mass value="8.5373" />
+      <inertia ixx="0.13032842458755559" ixy="0.0" ixz="0.0" iyy="0.13032842458755559" iyz="0.0" izz="0.023885070431392427" />
+    </inertial>
+    <collision>
+      <geometry>
+        <cylinder radius="0.0748028232531908" length="0.407925" />
+      </geometry>
+      <origin xyz="0.0 0.0 -0.2039625" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightUpperLeg.obj" scale="0.95869741 0.95869741 1.        " /></geometry><origin xyz="0.0 0.0 -0.2039625" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightUpperLeg_RightRecFem.obj" scale="0.95869741 0.95869741 1.        " /></geometry><origin xyz="0.0 0.0 -0.2039625" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightUpperLeg_RightBicFem.obj" scale="0.95869741 0.95869741 1.        " /></geometry><origin xyz="0.0 0.0 -0.2039625" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual></link>
+  <link name="RightLowerLeg_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RightLowerLeg">
+    <inertial>
+      <origin xyz="0.0 0.0 -0.204795" rpy="0.0 0.0 0.0" />
+      <mass value="2.6963" />
+      <inertia ixx="0.03966898002036369" ixy="0.0" ixz="0.0" iyy="0.03966898002036369" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <cylinder radius="0.05411268065124442" length="0.40959" />
+      </geometry>
+      <origin xyz="0.0 0.0 -0.204795" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightLowerLeg.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 0.0 -0.204795" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightLowerLeg_RightTibAnt.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 0.0 -0.204795" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightLowerLeg_RightGasMed.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 0.0 -0.204795" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightLowerLeg_RightGasLat.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 0.0 -0.204795" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual></link>
+  <link name="RightFoot_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RightFoot_f2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RightFoot">
+    <inertial>
+      <origin xyz="0.07242731934875557 0.0 -0.0324675" rpy="0.0 0.0 0.0" />
+      <mass value="0.7768529999999999" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <box size="0.25308  0.091575 0.064935" />
+      </geometry>
+      <origin xyz="0.07242731934875557 0.0 -0.0324675" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightFoot.obj" scale="1. 1. 1." /></geometry><origin xyz="0.07242731934875557 0.0 -0.0324675" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual></link>
+  <link name="RightToe">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0324675" rpy="0.0 0.0 0.0" />
+      <mass value="0.0039235" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <box size="0.0025308 0.091575  0.064935 " />
+      </geometry>
+      <origin xyz="0.0 0.0 0.0324675" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightToe.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0324675" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual></link>
+  <link name="RightHeel">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0324675" rpy="0.0 0.0 0.0" />
+      <mass value="0.0039235" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <box size="0.0025308 0.091575  0.064935 " />
+      </geometry>
+      <origin xyz="0.0 0.0 0.0324675" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/RightHeel.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0324675" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual></link>
+  <link name="RightFTSensor">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+    </link>
+  <link name="LeftUpperLeg_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="LeftUpperLeg_f2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="LeftUpperLeg">
+    <inertial>
+      <origin xyz="0.0 0.0 -0.2039625" rpy="0.0 0.0 0.0" />
+      <mass value="8.5373" />
+      <inertia ixx="0.13032842458755559" ixy="0.0" ixz="0.0" iyy="0.13032842458755559" iyz="0.0" izz="0.023885070431392427" />
+    </inertial>
+    <collision>
+      <geometry>
+        <cylinder radius="0.0748028232531908" length="0.407925" />
+      </geometry>
+      <origin xyz="0.0 0.0 -0.2039625" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftUpperLeg.obj" scale="0.95869741 0.95869741 1.        " /></geometry><origin xyz="0.0 0.0 -0.2039625" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftUpperLeg_LeftRecFem.obj" scale="0.95869741 0.95869741 1.        " /></geometry><origin xyz="0.0 0.0 -0.2039625" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftUpperLeg_LeftBicFem.obj" scale="0.95869741 0.95869741 1.        " /></geometry><origin xyz="0.0 0.0 -0.2039625" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual></link>
+  <link name="LeftLowerLeg_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="LeftLowerLeg">
+    <inertial>
+      <origin xyz="0.0 0.0 -0.204795" rpy="0.0 0.0 0.0" />
+      <mass value="2.6963" />
+      <inertia ixx="0.03966898002036369" ixy="0.0" ixz="0.0" iyy="0.03966898002036369" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <cylinder radius="0.05411268065124442" length="0.40959" />
+      </geometry>
+      <origin xyz="0.0 0.0 -0.204795" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftLowerLeg.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 0.0 -0.204795" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftLowerLeg_LeftTibAnt.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 0.0 -0.204795" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftLowerLeg_LeftGasMed.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 0.0 -0.204795" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual><visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftLowerLeg_LeftGasLat.obj" scale="0.99949304 0.99949304 1.        " /></geometry><origin xyz="0.0 0.0 -0.204795" rpy="0.0 0.0 0.0" />
+    <material name="muscle"><color rgba="0.7255 0.2078 0.2078 0.85" /></material></visual></link>
+  <link name="LeftFoot_f1">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="LeftFoot_f2">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="LeftFoot">
+    <inertial>
+      <origin xyz="0.07242731934875557 0.0 -0.0324675" rpy="0.0 0.0 0.0" />
+      <mass value="0.7768529999999999" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <box size="0.25308  0.091575 0.064935" />
+      </geometry>
+      <origin xyz="0.07242731934875557 0.0 -0.0324675" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftFoot.obj" scale="1. 1. 1." /></geometry><origin xyz="0.07242731934875557 0.0 -0.0324675" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual></link>
+  <link name="LeftToe">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0324675" rpy="0.0 0.0 0.0" />
+      <mass value="0.0039235" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <box size="0.0025308 0.091575  0.064935 " />
+      </geometry>
+      <origin xyz="0.0 0.0 0.0324675" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftToe.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0324675" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual></link>
+  <link name="LeftHeel">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0324675" rpy="0.0 0.0 0.0" />
+      <mass value="0.0039235" />
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01" />
+    </inertial>
+    <collision>
+      <geometry>
+        <box size="0.0025308 0.091575  0.064935 " />
+      </geometry>
+      <origin xyz="0.0 0.0 0.0324675" rpy="0.0 0.0 0.0" />
+    </collision>
+  <visual><geometry><mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/LeftHeel.obj" scale="1. 1. 1." /></geometry><origin xyz="0.0 0.0 0.0324675" rpy="0.0 0.0 0.0" />
+    <material name="Link"><color rgba="0.9176 0.7608 0.6275 1.0" /></material></visual></link>
+  <link name="LeftFTSensor">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+    </link>
+  <link name="BicBrac_RUA">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="BicBrac_RFA">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="TricBrac_RUA">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="TricBrac_RFA">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="FlexCarp_RFA">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="FlexCarp_RH">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="ExtCarp_RFA">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="ExtCarp_RH">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="BicBrac_LUA">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="BicBrac_LFA">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="TricBrac_LUA">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="TricBrac_LFA">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="FlexCarp_LFA">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="FlexCarp_LH">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="ExtCarp_LFA">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="ExtCarp_LH">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RecAbd_RUT">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RecAbd_RP">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="ErSpin_RUT">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="ErSpin_RP">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RecAbd_LUT">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RecAbd_LP">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="ErSpin_LUT">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="ErSpin_LP">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RecFem_RLT">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RecFem_RLL">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="BicFem_RUL">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="BicFem_RLL">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RecFem_LLT">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="RecFem_LLL">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="BicFem_LUL">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="BicFem_LLL">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="TibAnt_RLL">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="TibAnt_RF">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="GasLat_RUL">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="GasLat_RF">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="GasMed_RUL">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="GasMed_RF">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="TibAnt_LLL">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="TibAnt_LF">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="GasLat_LUL">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="GasLat_LF">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="GasMed_LUL">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <link name="GasMed_LF">
+    <inertial>
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <mass value="0.0001" />
+      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001" />
+    </inertial>
+  </link>
+  <joint name="jL5S1_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.610865" upper="0.610865" />
+    <parent link="Pelvis" />
+    <child link="L5_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.0 0.064935" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jL5S1_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.523599" upper="1.309" />
+    <parent link="L5_f1" />
+    <child link="L5" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jL4L3_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.610865" upper="0.610865" />
+    <parent link="L5" />
+    <child link="L3_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.0 0.0491175" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jL4L3_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.523599" upper="1.309" />
+    <parent link="L3_f1" />
+    <child link="L3" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jL1T12_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.610865" upper="0.610865" />
+    <parent link="L3" />
+    <child link="T12_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.0 0.074925" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jL1T12_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.523599" upper="1.309" />
+    <parent link="T12_f1" />
+    <child link="T12" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jT9T8_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.349066" upper="0.349066" />
+    <parent link="T12" />
+    <child link="T8_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.0 0.087579" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jT9T8_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.261799" upper="0.698132" />
+    <parent link="T8_f1" />
+    <child link="T8_f2" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jT9T8_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.610865" upper="0.610865" />
+    <parent link="T8_f2" />
+    <child link="T8" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jC7RightShoulder_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.785398" upper="0.0872665" />
+    <parent link="T8" />
+    <child link="C7Right_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 -0.0718725 0.09346511593426929" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jC7RightShoulder_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.349066" upper="0.349066" />
+    <parent link="C7Right_f1" />
+    <child link="C7Right_f2" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jC7RightShoulder_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.349066" upper="0.349066" />
+    <parent link="C7Right_f2" />
+    <child link="RightShoulder" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jC7LeftShoulder_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.0872665" upper="0.785398" />
+    <parent link="T8" />
+    <child link="C7Left_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.0718725 0.09346511593426929" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jC7LeftShoulder_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.349066" upper="0.349066" />
+    <parent link="C7Left_f1" />
+    <child link="C7Left_f2" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jC7LeftShoulder_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.349066" upper="0.349066" />
+    <parent link="C7Left_f2" />
+    <child link="LeftShoulder" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jT1C7_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.610865" upper="0.610865" />
+    <parent link="T8" />
+    <child link="Neck_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.0 0.1380285" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jT1C7_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.959931" upper="1.5708" />
+    <parent link="Neck_f1" />
+    <child link="Neck_f2" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jT1C7_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-1.22173" upper="1.22173" />
+    <parent link="Neck_f2" />
+    <child link="Neck" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jC1Head_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.610865" upper="0.610865" />
+    <parent link="Neck" />
+    <child link="Head_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.0 0.08658" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jC1Head_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.436332" upper="0.174533" />
+    <parent link="Head_f1" />
+    <child link="Head" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightShoulder_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-2.35619" upper="1.5708" />
+    <parent link="RightShoulder" />
+    <child link="RightShoulder_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 -0.143745 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightShoulder_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-1.5708" upper="1.5708" />
+    <parent link="RightShoulder_f1" />
+    <child link="RightShoulder_f2" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightShoulder_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.785398" upper="3.14159" />
+    <parent link="RightShoulder_f2" />
+    <child link="RightUpperArm" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightElbow_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-1.5708" upper="1.48353" />
+    <parent link="RightUpperArm" />
+    <child link="RightForeArm_f1" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 -0.30969 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightElbow_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="0.0" upper="2.53073" />
+    <parent link="RightForeArm_f1" />
+    <child link="RightForeArm" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightWrist_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.872665" upper="1.0472" />
+    <parent link="RightForeArm" />
+    <child link="RightHand_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 -0.24309 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightWrist_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.523599" upper="0.349066" />
+    <parent link="RightHand_f1" />
+    <child link="RightHand" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightHandCOM" type="fixed">
+    <parent link="RightHand" />
+    <child link="RightHandCOM" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 -0.08991 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftShoulder_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-1.5708" upper="2.35619" />
+    <parent link="LeftShoulder" />
+    <child link="LeftShoulder_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.143745 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftShoulder_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-1.5708" upper="1.5708" />
+    <parent link="LeftShoulder_f1" />
+    <child link="LeftShoulder_f2" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftShoulder_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-3.14159" upper="0.785398" />
+    <parent link="LeftShoulder_f2" />
+    <child link="LeftUpperArm" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftElbow_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-1.5708" upper="1.48353" />
+    <parent link="LeftUpperArm" />
+    <child link="LeftForeArm_f1" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.30969 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftElbow_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-2.53073" upper="0.0" />
+    <parent link="LeftForeArm_f1" />
+    <child link="LeftForeArm" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftWrist_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-1.0472" upper="0.872665" />
+    <parent link="LeftForeArm" />
+    <child link="LeftHand_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.24309 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftWrist_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.349066" upper="0.523599" />
+    <parent link="LeftHand_f1" />
+    <child link="LeftHand" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftHandCOM" type="fixed">
+    <parent link="LeftHand" />
+    <child link="LeftHandCOM" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.08991 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightHip_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.785398" upper="0.523599" />
+    <parent link="Pelvis" />
+    <child link="RightUpperLeg_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 -0.08420467674680919 -0.064935" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightHip_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-2.0944" upper="0.261799" />
+    <parent link="RightUpperLeg_f1" />
+    <child link="RightUpperLeg_f2" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightHip_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.785398" upper="0.785398" />
+    <parent link="RightUpperLeg_f2" />
+    <child link="RightUpperLeg" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightKnee_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="0.0" upper="2.35619" />
+    <parent link="RightUpperLeg" />
+    <child link="RightLowerLeg_f1" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 -0.407925" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightKnee_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.698132" upper="0.523599" />
+    <parent link="RightLowerLeg_f1" />
+    <child link="RightLowerLeg" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightAnkle_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.610865" upper="0.785398" />
+    <parent link="RightLowerLeg" />
+    <child link="RightFoot_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.0 -0.40959" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightAnkle_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.523599" upper="0.872665" />
+    <parent link="RightFoot_f1" />
+    <child link="RightFoot_f2" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightAnkle_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.436332" upper="0.872665" />
+    <parent link="RightFoot_f2" />
+    <child link="RightFoot" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightBallFoot_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.174533" upper="1.5708" />
+    <parent link="RightFoot" />
+    <child link="RightToe" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.20023271934875556 0.0 -0.064935" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightHeel_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-1.5708" upper="0.174533" />
+    <parent link="RightFoot" />
+    <child link="RightHeel" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="-0.05411268065124442 0.0 -0.064935" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightBirken_roty" type="fixed">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.174533" upper="1.5708" />
+    <parent link="RightFoot" />
+    <child link="RightFTSensor" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.037 0.0 -0.11993500000000001" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftHip_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.523599" upper="0.785398" />
+    <parent link="Pelvis" />
+    <child link="LeftUpperLeg_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.08420467674680919 -0.064935" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftHip_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-2.0944" upper="0.261799" />
+    <parent link="LeftUpperLeg_f1" />
+    <child link="LeftUpperLeg_f2" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftHip_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.785398" upper="0.785398" />
+    <parent link="LeftUpperLeg_f2" />
+    <child link="LeftUpperLeg" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftKnee_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="0.0" upper="2.35619" />
+    <parent link="LeftUpperLeg" />
+    <child link="LeftLowerLeg_f1" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 -0.407925" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftKnee_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.523599" upper="0.698132" />
+    <parent link="LeftLowerLeg_f1" />
+    <child link="LeftLowerLeg" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftAnkle_rotx" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.785398" upper="0.610865" />
+    <parent link="LeftLowerLeg" />
+    <child link="LeftFoot_f1" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.0 -0.40959" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftAnkle_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.523599" upper="0.872665" />
+    <parent link="LeftFoot_f1" />
+    <child link="LeftFoot_f2" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftAnkle_rotz" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.872665" upper="0.436332" />
+    <parent link="LeftFoot_f2" />
+    <child link="LeftFoot" />
+    <axis xyz="0. 0. 1." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftBallFoot_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.174533" upper="1.5708" />
+    <parent link="LeftFoot" />
+    <child link="LeftToe" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.20023271934875556 0.0 -0.064935" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftHeel_roty" type="revolute">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-1.5708" upper="0.174533" />
+    <parent link="LeftFoot" />
+    <child link="LeftHeel" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="-0.05411268065124442 0.0 -0.064935" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftBirken_roty" type="fixed">
+    <dynamics damping="0.1" friction="0.0" />
+    <limit effort="30.0" velocity="1.0" lower="-0.174533" upper="1.5708" />
+    <parent link="LeftFoot" />
+    <child link="LeftFTSensor" />
+    <axis xyz="0. 1. 0." />
+    <origin xyz="0.037 0.0 -0.11993500000000001" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightBicBrac_RUA" type="fixed">
+    <parent link="RightUpperArm" />
+    <child link="BicBrac_RUA" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-2.7287202827635632e-18 0.0 0.0445633840657307" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightBicBrac_RFA" type="fixed">
+    <parent link="RightForeArm" />
+    <child link="BicBrac_RFA" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.03501408748021698 0.0 0.03501408748021698" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightTricBrac_RUA" type="fixed">
+    <parent link="RightUpperArm" />
+    <child link="TricBrac_RUA" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.0445633840657307 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightTricBrac_RFA" type="fixed">
+    <parent link="RightForeArm" />
+    <child link="TricBrac_RFA" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.03501408748021698 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightFlexCarp_RFA" type="fixed">
+    <parent link="RightForeArm" />
+    <child link="FlexCarp_RFA" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.03501408748021698 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightFlexCarp_RH" type="fixed">
+    <parent link="RightHand" />
+    <child link="FlexCarp_RH" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.017 -0.08991 0.0125" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightExtCarp_RFA" type="fixed">
+    <parent link="RightForeArm" />
+    <child link="ExtCarp_RFA" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.03501408748021698 0.0 4.287989015771314e-18" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightExtCarp_RH" type="fixed">
+    <parent link="RightHand" />
+    <child link="ExtCarp_RH" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.017 -0.08991 -0.0125" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftBicBrac_LUA" type="fixed">
+    <parent link="LeftUpperArm" />
+    <child link="BicBrac_LUA" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="2.7287202827635632e-18 0.0 0.0445633840657307" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftBicBrac_LFA" type="fixed">
+    <parent link="LeftForeArm" />
+    <child link="BicBrac_LFA" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.03501408748021698 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftTricBrac_LUA" type="fixed">
+    <parent link="LeftUpperArm" />
+    <child link="TricBrac_LUA" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0445633840657307 0.0 5.4574405655271265e-18" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftTricBrac_LFA" type="fixed">
+    <parent link="LeftForeArm" />
+    <child link="TricBrac_LFA" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.03501408748021698 0.0 4.287989015771314e-18" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftFlexCarp_LFA" type="fixed">
+    <parent link="LeftForeArm" />
+    <child link="FlexCarp_LFA" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.03501408748021698 0.0 4.287989015771314e-18" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftFlexCarp_LH" type="fixed">
+    <parent link="LeftHand" />
+    <child link="FlexCarp_LH" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.017 0.08991 0.0125" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftExtCarp_LFA" type="fixed">
+    <parent link="LeftForeArm" />
+    <child link="ExtCarp_LFA" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.03501408748021698 0.0 4.287989015771314e-18" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftExtCarp_LH" type="fixed">
+    <parent link="LeftHand" />
+    <child link="ExtCarp_LH" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.017 0.08991 -0.025" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightRecAbd_RUT" type="fixed">
+    <parent link="T8" />
+    <child link="RecAbd_RUT" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.030000000000000002 -0.0718725 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightRecAbd_RP" type="fixed">
+    <parent link="Pelvis" />
+    <child link="RecAbd_RP" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.1125 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightErSpin_RUT" type="fixed">
+    <parent link="T8" />
+    <child link="ErSpin_RUT" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.030000000000000002 -0.0718725 0.1380285" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightErSpin_RP" type="fixed">
+    <parent link="Pelvis" />
+    <child link="ErSpin_RP" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.1125 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftRecAbd_LUT" type="fixed">
+    <parent link="T8" />
+    <child link="RecAbd_LUT" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.030000000000000002 0.0718725 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftRecAbd_LP" type="fixed">
+    <parent link="Pelvis" />
+    <child link="RecAbd_LP" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftErSpin_LUT" type="fixed">
+    <parent link="T8" />
+    <child link="ErSpin_LUT" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.030000000000000002 0.0718725 0.1380285" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftErSpin_LP" type="fixed">
+    <parent link="Pelvis" />
+    <child link="ErSpin_LP" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.1125 0.0 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightRecFem_RP" type="fixed">
+    <parent link="Pelvis" />
+    <child link="RecFem_RLT" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.1125 -0.106005 -0.064935" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightRecFem_RLL" type="fixed">
+    <parent link="RightLowerLeg" />
+    <child link="RecFem_RLL" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.05411268065124442 -3.3134460576414696e-18 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightBicFem_RUL" type="fixed">
+    <parent link="RightUpperLeg" />
+    <child link="BicFem_RUL" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.0748028232531908 9.940338172924408e-18 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightBicFem_RLL" type="fixed">
+    <parent link="RightLowerLeg" />
+    <child link="BicFem_RLL" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.0 -0.05411268065124442 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftRecFem_LP" type="fixed">
+    <parent link="Pelvis" />
+    <child link="RecFem_LLT" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.1125 0.106005 -0.064935" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftRecFem_LLL" type="fixed">
+    <parent link="LeftLowerLeg" />
+    <child link="RecFem_LLL" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.05411268065124442 -3.3134460576414696e-18 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftBicFem_LUL" type="fixed">
+    <parent link="LeftUpperLeg" />
+    <child link="BicFem_LUL" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.0748028232531908 9.940338172924408e-18 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftBicFem_LLL" type="fixed">
+    <parent link="LeftLowerLeg" />
+    <child link="BicFem_LLL" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="6.626892115282939e-18 0.05411268065124442 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightTibAnt_RLL" type="fixed">
+    <parent link="RightLowerLeg" />
+    <child link="TibAnt_RLL" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.05411268065124442 -3.3134460576414696e-18 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightTibAnt_RF" type="fixed">
+    <parent link="RightFoot" />
+    <child link="TibAnt_RF" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.12653999999999999 0.0457875 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightGasLat_RUL" type="fixed">
+    <parent link="RightUpperLeg" />
+    <child link="GasLat_RUL" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.06478114521206056 -0.02705634032562222 -0.407925" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightGasLat_RF" type="fixed">
+    <parent link="RightFoot" />
+    <child link="GasLat_RF" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.05411268065124442 0.0 -0.0324675" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightGasMed_RUL" type="fixed">
+    <parent link="RightUpperLeg" />
+    <child link="GasMed_RUL" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.06478114521206055 0.027056340325622236 -0.407925" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jRightGasMed_RF" type="fixed">
+    <parent link="RightFoot" />
+    <child link="GasMed_RF" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.05411268065124442 0.0 -0.0324675" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftTibAnt_LLL" type="fixed">
+    <parent link="LeftLowerLeg" />
+    <child link="TibAnt_LLL" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.05411268065124442 -3.3134460576414696e-18 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftTibAnt_LF" type="fixed">
+    <parent link="LeftFoot" />
+    <child link="TibAnt_LF" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="0.12653999999999999 -0.0457875 0.0" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftGasLat_LUL" type="fixed">
+    <parent link="LeftUpperLeg" />
+    <child link="GasLat_LUL" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.06478114521206055 0.027056340325622236 -0.407925" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftGasLat_LF" type="fixed">
+    <parent link="LeftFoot" />
+    <child link="GasLat_LF" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.05411268065124442 0.0 -0.0324675" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftGasMed_LUL" type="fixed">
+    <parent link="LeftUpperLeg" />
+    <child link="GasMed_LUL" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.06478114521206056 -0.02705634032562222 -0.407925" rpy="0.0 0.0 0.0" />
+  </joint>
+  <joint name="jLeftGasMed_LF" type="fixed">
+    <parent link="LeftFoot" />
+    <child link="GasMed_LF" />
+    <axis xyz="1. 0. 0." />
+    <origin xyz="-0.05411268065124442 0.0 -0.0324675" rpy="0.0 0.0 0.0" />
+  </joint>
+</robot>
