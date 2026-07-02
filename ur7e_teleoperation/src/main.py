@@ -6,6 +6,9 @@ from pyglet.window import key as pyglet_key
 gs.init(backend=gs.gpu)
 
 scene = gs.Scene(
+    profiling_options=gs.options.ProfilingOptions(
+        show_FPS=False,
+    ),
     vis_options=gs.options.VisOptions(
         show_world_frame=True,
         world_frame_size=1.0,
@@ -42,6 +45,7 @@ ur5e = scene.add_entity(
         file='/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/ur5e.urdf',
         fixed=True,
         pos=(0.0, 0.0, 0.5),
+        links_to_keep=['probe_link'],  # prevent fixed-joint merge collapsing probe into wrist_3_link
     )
 )
 
@@ -105,6 +109,7 @@ jnt_names = [
     'wrist_1_joint',      'wrist_2_joint',       'wrist_3_joint',
 ]
 end_effector = ur5e.get_link('wrist_3_link')
+probe_link   = ur5e.get_link('probe_link')  # force-sensing link only, IK target unchanged
 dofs_idx     = [ur5e.get_joint(name).dof_idx_local for name in jnt_names]
 
 ur5e.set_dofs_kp(np.array([4500, 4500, 3500, 3500, 2000, 2000]), dofs_idx)
@@ -158,6 +163,10 @@ POS_SCALE     = 1.0
 MAX_TILT_RAD  = np.radians(60)
 SMOOTH        = 0.15
 MAX_JUMP_RAD  = 0.3
+
+# ── Contact-force logging state ─────────────────────────────────────────
+FORCE_PRINT_EVERY = 30   # print every N sim steps (~2 Hz at max_FPS=60)
+step_count = 0
 
 last_good_qpos = None
 current_qpos   = None
@@ -299,6 +308,47 @@ def imu_to_ee_target():
     ee_target_quat = quat_mul(ee_home_quat, delta_quat)
     ee_target_quat /= np.linalg.norm(ee_target_quat)
 
+def print_contact_forces():
+    """Print contact force specifically on probe_link (not the whole arm),
+    from its contact with the human."""
+    contacts = ur5e.get_contacts(with_entity=human)
+    n_contacts = len(contacts['position'])
+
+    if n_contacts == 0:
+        print("No human contact")
+        return
+
+    link_a = contacts['link_a']  # per-contact link index on the ur5e side
+    if hasattr(link_a, 'cpu'):
+        link_a = link_a.cpu().numpy()
+
+    forces_a = contacts['force_a']
+    if hasattr(forces_a, 'cpu'):
+        forces_a = forces_a.cpu().numpy()
+
+    forces_b = contacts['force_b']
+    if hasattr(forces_b, 'cpu'):
+        forces_b = forces_b.cpu().numpy()
+
+    link_b = contacts['link_b']
+    if hasattr(link_b, 'cpu'):
+        link_b = link_b.cpu().numpy()
+
+    probe_mask = (link_a == probe_link.idx) | (link_b == probe_link.idx)
+    n_probe_contacts = int(np.sum(probe_mask))
+
+    if n_probe_contacts > 0:
+        a_hits = (link_a[probe_mask] == probe_link.idx)
+        rows_force = np.where(
+            a_hits[:, None], forces_a[probe_mask], forces_b[probe_mask]
+        )
+        total_probe_force = np.sum(rows_force, axis=0)
+        print(f"probe contact force = {np.round(total_probe_force, 3)} N | "
+              f"mag = {np.linalg.norm(total_probe_force):.3f} N | "
+              f"contacts = {n_probe_contacts}")
+    else:
+        print(f"No probe contact (arm has {n_contacts} contact(s) elsewhere)")
+
 print("=" * 52)
 print("  IMU Teleoperation — controls")
 print("  +X / -X  : UP    / DOWN")
@@ -330,6 +380,10 @@ try:
 
         ur5e.control_dofs_position(final_qpos, dofs_idx_local=dofs_idx)
         scene.step()
+
+        step_count += 1
+        if step_count % FORCE_PRINT_EVERY == 0:
+            print_contact_forces()
 
 except KeyboardInterrupt:
     print("\n[IMU] Simulation stopped.")

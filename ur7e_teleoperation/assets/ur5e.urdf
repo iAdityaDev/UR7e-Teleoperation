@@ -620,4 +620,30 @@
     <parent link="flange"/>
     <child link="tool0"/>
   </joint>
+
+
+
+  <link name="probe_link">
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="1e-6" iyy="1e-6" izz="1e-6" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/abdominal-probe-v8.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/meshes/abdominal-probe-v8.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="probe_fixed_joint" type="fixed">
+    <parent link="wrist_3_link"/>
+    <child link="probe_link"/>
+    <origin xyz="0 0 0.05" rpy="3.14159 0 0"/>  <!-- offset from wrist_3_link origin to probe tip -->
+  </joint>
+
 </robot>
