@@ -2,6 +2,8 @@ import genesis as gs
 import numpy as np
 import pyglet
 from pyglet.window import key as pyglet_key
+import matplotlib.pyplot as plt
+from collections import deque
 
 gs.init(backend=gs.gpu)
 
@@ -190,6 +192,23 @@ def axis_angle_to_quat(axis, angle):
 def quat_conjugate(q):
     return np.array([q[0], -q[1], -q[2], -q[3]])
 
+def quat_to_euler_deg(q):
+    """wxyz quat -> roll, pitch, yaw in degrees (extrinsic XYZ)."""
+    w, x, y, z = q
+    sinr_cosp = 2 * (w*x + y*z)
+    cosr_cosp = 1 - 2 * (x*x + y*y)
+    roll = np.arctan2(sinr_cosp, cosr_cosp)
+
+    sinp = 2 * (w*y - z*x)
+    sinp = np.clip(sinp, -1.0, 1.0)
+    pitch = np.arcsin(sinp)
+
+    siny_cosp = 2 * (w*z + x*y)
+    cosy_cosp = 1 - 2 * (y*y + z*z)
+    yaw = np.arctan2(siny_cosp, cosy_cosp)
+
+    return np.degrees([roll, pitch, yaw])
+
 KEY_MAP = {
     pyglet_key.UP       : ('pos', 0,  MOVE_STEP),
     pyglet_key.DOWN     : ('pos', 0, -MOVE_STEP),
@@ -308,19 +327,22 @@ def imu_to_ee_target():
     ee_target_quat = quat_mul(ee_home_quat, delta_quat)
     ee_target_quat /= np.linalg.norm(ee_target_quat)
 
-def print_contact_forces():
-    """Print contact force specifically on probe_link (not the whole arm),
-    from its contact with the human."""
+def get_probe_contact_force():
+    """Return the 3D contact force vector on probe_link from contact with
+    the human, or None if there's no probe contact right now."""
     contacts = ur5e.get_contacts(with_entity=human)
     n_contacts = len(contacts['position'])
 
     if n_contacts == 0:
-        print("No human contact")
-        return
+        return None
 
-    link_a = contacts['link_a']  # per-contact link index on the ur5e side
+    link_a = contacts['link_a']
     if hasattr(link_a, 'cpu'):
         link_a = link_a.cpu().numpy()
+
+    link_b = contacts['link_b']
+    if hasattr(link_b, 'cpu'):
+        link_b = link_b.cpu().numpy()
 
     forces_a = contacts['force_a']
     if hasattr(forces_a, 'cpu'):
@@ -330,24 +352,84 @@ def print_contact_forces():
     if hasattr(forces_b, 'cpu'):
         forces_b = forces_b.cpu().numpy()
 
-    link_b = contacts['link_b']
-    if hasattr(link_b, 'cpu'):
-        link_b = link_b.cpu().numpy()
-
     probe_mask = (link_a == probe_link.idx) | (link_b == probe_link.idx)
-    n_probe_contacts = int(np.sum(probe_mask))
+    if not np.any(probe_mask):
+        return None
 
-    if n_probe_contacts > 0:
-        a_hits = (link_a[probe_mask] == probe_link.idx)
-        rows_force = np.where(
-            a_hits[:, None], forces_a[probe_mask], forces_b[probe_mask]
-        )
-        total_probe_force = np.sum(rows_force, axis=0)
-        print(f"probe contact force = {np.round(total_probe_force, 3)} N | "
-              f"mag = {np.linalg.norm(total_probe_force):.3f} N | "
-              f"contacts = {n_probe_contacts}")
+    a_hits = (link_a[probe_mask] == probe_link.idx)
+    rows_force = np.where(
+        a_hits[:, None], forces_a[probe_mask], forces_b[probe_mask]
+    )
+    return np.sum(rows_force, axis=0)
+
+def print_contact_forces():
+    """Print contact force specifically on probe_link (not the whole arm)."""
+    force = get_probe_contact_force()
+    if force is None:
+        print("No probe contact")
     else:
-        print(f"No probe contact (arm has {n_contacts} contact(s) elsewhere)")
+        print(f"probe contact force = {np.round(force, 3)} N | "
+              f"mag = {np.linalg.norm(force):.3f} N")
+
+# ── Live plot: EEF orientation + probe contact force ────────────────────
+HISTORY_LEN     = 300   # rolling window length (samples)
+PLOT_UPDATE_EVERY = 5   # redraw every N sim steps
+
+t_hist       = deque(maxlen=HISTORY_LEN)
+roll_hist    = deque(maxlen=HISTORY_LEN)
+pitch_hist   = deque(maxlen=HISTORY_LEN)
+yaw_hist     = deque(maxlen=HISTORY_LEN)
+fmag_hist    = deque(maxlen=HISTORY_LEN)
+
+plt.ion()
+fig, (ax_orient, ax_force) = plt.subplots(2, 1, figsize=(8, 7))
+fig.canvas.manager.set_window_title("EEF Orientation & Probe Contact Force")
+
+line_roll,  = ax_orient.plot([], [], label="roll",  color="tab:red")
+line_pitch, = ax_orient.plot([], [], label="pitch", color="tab:green")
+line_yaw,   = ax_orient.plot([], [], label="yaw",   color="tab:blue")
+ax_orient.set_ylabel("degrees")
+ax_orient.set_title("End-Effector Orientation")
+ax_orient.set_ylim(-190, 190)
+ax_orient.legend(loc="upper right")
+ax_orient.grid(True, alpha=0.3)
+
+line_fmag, = ax_force.plot([], [], label="Net Force |F|", color="black", linewidth=2)
+ax_force.set_ylabel("N")
+ax_force.set_xlabel("sim step")
+ax_force.set_title("Probe Net Contact Force")
+ax_force.legend(loc="upper right")
+ax_force.grid(True, alpha=0.3)
+
+fig.tight_layout()
+
+def update_live_plot(step, ee_quat, force):
+    t_hist.append(step)
+
+    roll, pitch, yaw = quat_to_euler_deg(ee_quat)
+    roll_hist.append(roll)
+    pitch_hist.append(pitch)
+    yaw_hist.append(yaw)
+
+    if force is None:
+        fmag_hist.append(0.0)
+    else:
+        fmag_hist.append(np.linalg.norm(force))
+
+    line_roll.set_data(t_hist, roll_hist)
+    line_pitch.set_data(t_hist, pitch_hist)
+    line_yaw.set_data(t_hist, yaw_hist)
+
+    line_fmag.set_data(t_hist, fmag_hist)
+
+    ax_orient.set_xlim(t_hist[0], t_hist[-1] + 1)
+    ax_force.set_xlim(t_hist[0], t_hist[-1] + 1)
+
+    f_max = max(10.0, max(fmag_hist))
+    ax_force.set_ylim(0, f_max * 1.1)
+
+    fig.canvas.draw_idle()
+    fig.canvas.flush_events()
 
 print("=" * 52)
 print("  IMU Teleoperation — controls")
@@ -384,6 +466,13 @@ try:
         step_count += 1
         if step_count % FORCE_PRINT_EVERY == 0:
             print_contact_forces()
+
+        if step_count % PLOT_UPDATE_EVERY == 0:
+            ee_quat_now = end_effector.get_quat()
+            if hasattr(ee_quat_now, 'cpu'):
+                ee_quat_now = ee_quat_now.cpu().numpy()
+            probe_force = get_probe_contact_force()
+            update_live_plot(step_count, ee_quat_now, probe_force)
 
 except KeyboardInterrupt:
     print("\n[IMU] Simulation stopped.")
