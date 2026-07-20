@@ -179,8 +179,8 @@ current_qpos   = None
 # ── Ultrasound image-per-body-part config ────────────────────────────────
 # Add a new body part -> just add one line here pointing at its frames folder.
 BODY_PART_IMAGE_FOLDERS = {
-    'T8':     '/home/deviant/IIIT_intern/assets/ultrasound_images/T8/',
-    'L5':     '/home/deviant/IIIT_intern/assets/ultrasound_images/L5/',
+    'T8':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/T8/',
+    'L5':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/L5/',
     # 'Pelvis': '/home/deviant/IIIT_intern/assets/ultrasound_images/pelvis/',
     'L3':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/L3',
     'T12':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/T12',
