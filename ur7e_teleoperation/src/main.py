@@ -65,7 +65,7 @@ human = scene.add_entity(
         file='/home/deviant/human-model-generator/code/models/humanModels/kevin_ultrasound.urdf',
         pos=(0.6, 0.0, 0.55),
         euler=(0, 270, 90),
-        fixed=False,
+        fixed=True,
     )
 )
 
@@ -179,9 +179,11 @@ current_qpos   = None
 # ── Ultrasound image-per-body-part config ────────────────────────────────
 # Add a new body part -> just add one line here pointing at its frames folder.
 BODY_PART_IMAGE_FOLDERS = {
-    # 'T8':     '/home/deviant/IIIT_intern/assets/ultrasound_images/t8/',
+    'T8':     '/home/deviant/IIIT_intern/assets/ultrasound_images/T8/',
+    'L5':     '/home/deviant/IIIT_intern/assets/ultrasound_images/L5/',
     # 'Pelvis': '/home/deviant/IIIT_intern/assets/ultrasound_images/pelvis/',
     'L3':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/L3',
+    'T12':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/T12',
 }
 IMAGE_FRAME_RATE = 10   # frames per second, tweak later
 
@@ -464,31 +466,54 @@ def print_probe_body_part():
 
 
 # ── Ultrasound image display ─────────────────────────────────────────────
-_frame_idx = 0
-_last_frame_time = 0
+# Advances to the next frame whenever the probe's position or orientation
+# changes noticeably while touching a mapped body part.
+POS_CHANGE_THRESH = 0.002   # meters
+ROT_CHANGE_THRESH = 0.02    # radians
 
-def get_current_ultrasound_image():
-    """Return the current ultrasound frame image (cycling through the
-    matched body part's folder at IMAGE_FRAME_RATE), or None if the probe
-    isn't touching a body part that has images mapped."""
-    global _frame_idx, _last_frame_time
+_frame_idx    = 0
+_active_part  = None
+_last_pos     = None
+_last_quat    = None
+
+def get_current_ultrasound_image(ee_pos, ee_quat):
+    """Return the ultrasound frame image for the current probe contact.
+    The frame advances only when ee_pos/ee_quat changes enough since the
+    last check; otherwise the same frame keeps showing. Returns None if
+    the probe isn't touching a body part that has images mapped."""
+    global _frame_idx, _active_part, _last_pos, _last_quat
 
     parts = get_probe_contact_body_part()
     if not parts:
+        _active_part = None
         return None
 
-    folder = BODY_PART_IMAGE_FOLDERS.get(parts[0][0])
+    part_name = parts[0][0]
+    folder = BODY_PART_IMAGE_FOLDERS.get(part_name)
     if folder is None:
+        _active_part = None
         return None
 
     frames = sorted(glob.glob(os.path.join(folder, '*.png')))
     if not frames:
         return None
 
-    now = time.time()
-    if now - _last_frame_time >= 1.0 / IMAGE_FRAME_RATE:
+    # reset playback when we start touching a new/different part
+    if part_name != _active_part:
+        _active_part = part_name
+        _frame_idx   = 0
+        _last_pos    = np.array(ee_pos, dtype=float)
+        _last_quat   = np.array(ee_quat, dtype=float)
+        return mpimg.imread(frames[_frame_idx])
+
+    pos_delta = np.linalg.norm(np.array(ee_pos) - _last_pos)
+    quat_dot  = np.clip(np.abs(np.dot(ee_quat, _last_quat)), -1.0, 1.0)
+    rot_delta = 2 * np.arccos(quat_dot)
+
+    if pos_delta >= POS_CHANGE_THRESH or rot_delta >= ROT_CHANGE_THRESH:
         _frame_idx = (_frame_idx + 1) % len(frames)
-        _last_frame_time = now
+        _last_pos  = np.array(ee_pos, dtype=float)
+        _last_quat = np.array(ee_quat, dtype=float)
 
     return mpimg.imread(frames[_frame_idx])
 
@@ -600,13 +625,16 @@ try:
             print_probe_body_part()
 
         if step_count % PLOT_UPDATE_EVERY == 0:
+            ee_pos_now  = end_effector.get_pos()
             ee_quat_now = end_effector.get_quat()
+            if hasattr(ee_pos_now, 'cpu'):
+                ee_pos_now = ee_pos_now.cpu().numpy()
             if hasattr(ee_quat_now, 'cpu'):
                 ee_quat_now = ee_quat_now.cpu().numpy()
             probe_force = get_probe_contact_force()
             update_live_plot(step_count, ee_quat_now, probe_force)
 
-            img = get_current_ultrasound_image()
+            img = get_current_ultrasound_image(ee_pos_now, ee_quat_now)
             if img is None:
                 image_artist.set_visible(False)
             else:
