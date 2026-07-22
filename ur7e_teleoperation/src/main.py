@@ -518,9 +518,11 @@ def get_current_ultrasound_image(ee_pos, ee_quat):
     return mpimg.imread(frames[_frame_idx])
 
 
-# ── Live plot: EEF orientation + probe contact force + ultrasound view ──
-HISTORY_LEN     = 300   # rolling window length (samples)
-PLOT_UPDATE_EVERY = 5   # redraw every N sim steps
+# ── Live plots ────────────────────────────────────────────────────────
+# Window 1: EEF orientation + probe contact force
+# Window 2: Ultrasound image feed (separate, standalone window)
+HISTORY_LEN        = 300   # rolling window length (samples)
+PLOT_UPDATE_EVERY  = 5     # redraw every N sim steps
 
 t_hist       = deque(maxlen=HISTORY_LEN)
 roll_hist    = deque(maxlen=HISTORY_LEN)
@@ -529,11 +531,12 @@ yaw_hist     = deque(maxlen=HISTORY_LEN)
 fmag_hist    = deque(maxlen=HISTORY_LEN)
 
 plt.ion()
-fig, (ax_orient, ax_force, ax_image) = plt.subplots(
-    3, 1, figsize=(8, 14),
-    gridspec_kw={'height_ratios': [1, 1, 2.5]}   # USG panel gets more vertical space
+
+# ── Window 1: EEF orientation + contact force ─────────────────────────
+fig, (ax_orient, ax_force) = plt.subplots(
+    2, 1, figsize=(8, 7),
 )
-fig.canvas.manager.set_window_title("EEF Orientation, Contact Force & Ultrasound View")
+fig.canvas.manager.set_window_title("EEF Orientation & Contact Force")
 
 line_roll,  = ax_orient.plot([], [], label="roll",  color="tab:red")
 line_pitch, = ax_orient.plot([], [], label="pitch", color="tab:green")
@@ -551,15 +554,27 @@ ax_force.set_title("Probe Net Contact Force")
 ax_force.legend(loc="upper right")
 ax_force.grid(True, alpha=0.3)
 
-# Ultrasound image panel — blank until the probe touches a mapped body part
+fig.tight_layout()
+
+# ── Window 2: Ultrasound image feed (standalone window) ────────────────
+fig_usg, ax_image = plt.subplots(figsize=(6, 6))
+fig_usg.canvas.manager.set_window_title("Ultrasound View")
 ax_image.set_title("Ultrasound View")
 ax_image.axis('off')
 image_artist = ax_image.imshow(np.zeros((10, 10, 3)))
 image_artist.set_visible(False)
+fig_usg.tight_layout()
 
-fig.tight_layout()
+# Placeholder text shown when the probe isn't touching a mapped body part
+no_signal_text = ax_image.text(
+    0.5, 0.5, "No probe contact",
+    ha='center', va='center', transform=ax_image.transAxes,
+    fontsize=14, color='gray'
+)
+
 
 def update_live_plot(step, ee_quat, force):
+    """Updates the orientation/force window only (fig)."""
     t_hist.append(step)
 
     roll, pitch, yaw = quat_to_euler_deg(ee_quat)
@@ -586,6 +601,21 @@ def update_live_plot(step, ee_quat, force):
 
     fig.canvas.draw_idle()
     fig.canvas.flush_events()
+
+
+def update_usg_window(img):
+    """Updates the standalone ultrasound window (fig_usg)."""
+    if img is None:
+        image_artist.set_visible(False)
+        no_signal_text.set_visible(True)
+    else:
+        image_artist.set_data(img)
+        image_artist.set_visible(True)
+        no_signal_text.set_visible(False)
+
+    fig_usg.canvas.draw_idle()
+    fig_usg.canvas.flush_events()
+
 
 print("=" * 52)
 print("  IMU Teleoperation — controls")
@@ -631,15 +661,12 @@ try:
                 ee_pos_now = ee_pos_now.cpu().numpy()
             if hasattr(ee_quat_now, 'cpu'):
                 ee_quat_now = ee_quat_now.cpu().numpy()
+
             probe_force = get_probe_contact_force()
             update_live_plot(step_count, ee_quat_now, probe_force)
 
             img = get_current_ultrasound_image(ee_pos_now, ee_quat_now)
-            if img is None:
-                image_artist.set_visible(False)
-            else:
-                image_artist.set_data(img)
-                image_artist.set_visible(True)
+            update_usg_window(img)
 
 except KeyboardInterrupt:
     print("\n[IMU] Simulation stopped.")
