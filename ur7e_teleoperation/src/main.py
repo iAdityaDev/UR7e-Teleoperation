@@ -160,6 +160,12 @@ imu_quat     = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
 imu_ref_pos  = imu_pos.copy()
 imu_ref_quat = imu_quat.copy()
 
+# EE-facing rotation accumulator (kept separate from imu_quat so the
+# imu_entity gizmo's visual behavior stays completely unchanged; this one
+# has pitch/yaw inverted per-axis before composition, see EE_AXIS_SIGN).
+imu_quat_ee     = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
+imu_ref_quat_ee = imu_quat_ee.copy()
+
 ee_target_pos  = ee_home_pos.copy()
 ee_target_quat = ee_home_quat.copy()
 
@@ -228,7 +234,7 @@ def quat_to_euler_deg(q):
 # Confirmed: a 90 deg rotation about Z maps IMU-local Y (pitch) onto
 # EE-local X (pitch/roll axis correctly). Sign flipped from -90 to +90
 # to correct the direction (was rotating opposite to the IMU's motion).
-R_CALIB = axis_angle_to_quat([0, 0, 1], np.pi / 2)
+R_CALIB = axis_angle_to_quat([0, 0, 1], -np.pi / 2)
 
 def frame_transform(delta, R):
     """Re-express a local-frame delta rotation in another frame's local axes."""
@@ -241,36 +247,57 @@ KEY_MAP = {
     pyglet_key.LEFT     : ('pos', 1, -MOVE_STEP),
     pyglet_key.E        : ('pos', 2,  MOVE_STEP),
     pyglet_key.Q        : ('pos', 2, -MOVE_STEP),
-    pyglet_key.T        : ('rot', [0,1,0],  ROT_STEP),
-    pyglet_key.G        : ('rot', [0,1,0], -ROT_STEP),
-    pyglet_key.F        : ('rot', [0,0,1],  ROT_STEP),
-    pyglet_key.H        : ('rot', [0,0,1], -ROT_STEP),
-    pyglet_key.V        : ('rot', [1,0,0],  ROT_STEP),
-    pyglet_key.B        : ('rot', [1,0,0], -ROT_STEP),
+    pyglet_key.Y        : ('rot', [1,0,0],  ROT_STEP),
+    pyglet_key.U        : ('rot', [1,0,0], -ROT_STEP),
+    pyglet_key.J        : ('rot', [0,1,0],  ROT_STEP),
+    pyglet_key.K        : ('rot', [0,1,0], -ROT_STEP),
+    pyglet_key.B        : ('rot', [0,0,1],  ROT_STEP),
+    pyglet_key.N        : ('rot', [0,0,1], -ROT_STEP),
 }
 
-def clamp_imu_rotation():
-    global imu_quat
+# Per-key sign correction applied ONLY to the EE-facing accumulator
+# (imu_quat_ee). Roll (Y/U) is left unchanged since it was already
+# correct; pitch (J/K) and yaw (B/N) are inverted here.
+EE_AXIS_SIGN = {
+    pyglet_key.Y: 1,   pyglet_key.U: 1,     # roll  -> unchanged
+    pyglet_key.J: -1,  pyglet_key.K: -1,    # pitch -> inverted
+    pyglet_key.B: -1,  pyglet_key.N: -1,    # yaw   -> inverted
+}
 
-    delta = quat_mul(quat_conjugate(imu_ref_quat), imu_quat)
+def clamp_rotation(q, q_ref, max_angle):
+    """Clamp q's total rotation relative to q_ref to at most max_angle.
+    Generic version of the original clamp body, reusable for both
+    imu_quat (visual gizmo) and imu_quat_ee (EE-driving)."""
+    delta = quat_mul(quat_conjugate(q_ref), q)
 
     w = np.clip(delta[0], -1.0, 1.0)
     total_angle = 2 * np.arccos(abs(w))
 
-    if total_angle > MAX_TILT_RAD:
+    if total_angle > max_angle:
         axis = delta[1:]
         axis_norm = np.linalg.norm(axis)
         if axis_norm > 1e-6:
-            axis /= axis_norm
-            half = MAX_TILT_RAD / 2
+            axis = axis / axis_norm
+            half = max_angle / 2
             clamped_delta = np.array([
                 np.cos(half),
                 axis[0] * np.sin(half),
                 axis[1] * np.sin(half),
                 axis[2] * np.sin(half),
             ])
-            imu_quat = quat_mul(imu_ref_quat, clamped_delta)
-            imu_quat /= np.linalg.norm(imu_quat)
+            q = quat_mul(q_ref, clamped_delta)
+            q = q / np.linalg.norm(q)
+
+    return q
+
+def clamp_imu_rotation():
+    """Clamp BOTH accumulators independently: imu_quat (drives the visual
+    gizmo) and imu_quat_ee (drives the arm). Previously only imu_quat was
+    clamped here, so the gizmo respected MAX_TILT_RAD but the arm — which
+    reads from imu_quat_ee — did not."""
+    global imu_quat, imu_quat_ee
+    imu_quat    = clamp_rotation(imu_quat,    imu_ref_quat,    MAX_TILT_RAD)
+    imu_quat_ee = clamp_rotation(imu_quat_ee, imu_ref_quat_ee, MAX_TILT_RAD)
 
 def safe_ik(ee_pos, ee_quat):
     global last_good_qpos
@@ -320,7 +347,7 @@ def smooth_ik(target_qpos):
     return current_qpos
 
 def update_imu():
-    global imu_pos, imu_quat
+    global imu_pos, imu_quat, imu_quat_ee
 
     for sym, action in KEY_MAP.items():
         if sym not in keys_pressed:
@@ -330,13 +357,19 @@ def update_imu():
             imu_pos[axis] += delta
         else:
             _, ax, angle = action
+            # Visual gizmo accumulator — unchanged, drives imu_entity directly.
             imu_quat = quat_mul(imu_quat, axis_angle_to_quat(ax, angle))
+            # EE-facing accumulator — pitch/yaw inverted per EE_AXIS_SIGN.
+            sign = EE_AXIS_SIGN.get(sym, 1)
+            imu_quat_ee = quat_mul(imu_quat_ee, axis_angle_to_quat(ax, sign * angle))
 
     if pyglet_key.SPACE in keys_pressed:
-        imu_pos[:]  = imu_ref_pos
-        imu_quat[:] = imu_ref_quat
+        imu_pos[:]     = imu_ref_pos
+        imu_quat[:]    = imu_ref_quat
+        imu_quat_ee[:] = imu_ref_quat_ee
 
-    imu_quat /= np.linalg.norm(imu_quat)
+    imu_quat    /= np.linalg.norm(imu_quat)
+    imu_quat_ee /= np.linalg.norm(imu_quat_ee)
 
 def imu_to_ee_target():
     global ee_target_pos, ee_target_quat
@@ -348,8 +381,8 @@ def imu_to_ee_target():
         [ 0.7,  0.6, 1.8],
     )
 
-    delta_quat_imu = quat_mul(quat_conjugate(imu_ref_quat), imu_quat)
-    delta_quat_ee  = frame_transform(delta_quat_imu, R_CALIB)
+    delta_quat_imu_ee = quat_mul(quat_conjugate(imu_ref_quat_ee), imu_quat_ee)
+    delta_quat_ee     = frame_transform(delta_quat_imu_ee, R_CALIB)
 
     ee_target_quat = quat_mul(ee_home_quat, delta_quat_ee)
     ee_target_quat /= np.linalg.norm(ee_target_quat)
@@ -615,19 +648,6 @@ def update_usg_window(img):
 
     fig_usg.canvas.draw_idle()
     fig_usg.canvas.flush_events()
-
-
-print("=" * 52)
-print("  IMU Teleoperation — controls")
-print("  +X / -X  : UP    / DOWN")
-print("  +Y / -Y  : RIGHT / LEFT")
-print("  +Z / -Z  : E / Q")
-print("  Pitch    : T / G")
-print("  Yaw      : F / H")
-print("  Roll     : V / B")
-print("  Reset    : SPACE")
-print("  Quit     : Ctrl-C")
-print("=" * 52)
 
 try:
     while True:
