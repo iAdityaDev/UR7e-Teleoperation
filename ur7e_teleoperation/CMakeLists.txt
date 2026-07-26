@@ -13,7 +13,7 @@ find_package(ament_cmake REQUIRED)
 
 
 install(
-  DIRECTORY assets src
+  DIRECTORY assets src launch
   DESTINATION share/${PROJECT_NAME}
 )
 

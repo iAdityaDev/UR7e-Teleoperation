@@ -8,6 +8,12 @@ from collections import deque
 import os
 import glob
 import time
+import threading
+
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from sensor_msgs.msg import Imu
 
 gs.init(backend=gs.gpu)
 
@@ -130,7 +136,7 @@ ur5e.set_dofs_force_range(
 home_joint_angles = np.array([
      0.0,
     -1.5708,
-     1.5708,    
+     1.5708,
     -1.5708,
     -1.5708,
      0.0,
@@ -153,26 +159,69 @@ ee_home_quat /= np.linalg.norm(ee_home_quat)
 
 print(f"[INIT] Home pos {np.round(ee_home_pos,  3)}")
 print(f"[INIT] Home quat {np.round(ee_home_quat, 4)}")
-print("[INIT] Teleoperation ready")
+
+# ── Real IMU input over micro-ROS ────────────────────────────────────────
+# Replaces the old keyboard-simulated rotation entirely. Position is still
+# keyboard-driven below; only ORIENTATION comes from the sensor now.
+
+IMU_TOPIC = '/imu/data'   # <-- change to match your micro-ROS publisher; check with `ros2 topic list`
+
+_imu_lock            = threading.Lock()
+_latest_imu_quat_raw = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)  # w, x, y, z
+_imu_data_received    = False
+
+class ImuListener(Node):
+    def __init__(self):
+        super().__init__('genesis_imu_listener')
+        self.create_subscription(Imu, IMU_TOPIC, self._callback, qos_profile_sensor_data)
+
+    def _callback(self, msg):
+        global _latest_imu_quat_raw, _imu_data_received
+        # sensor_msgs/Imu.orientation is (x, y, z, w) -- our convention is (w, x, y, z).
+        q = np.array([
+            msg.orientation.w,
+            msg.orientation.x,
+            msg.orientation.y,
+            msg.orientation.z,
+        ], dtype=float)
+        norm = np.linalg.norm(q)
+        if norm > 1e-6:
+            q = q / norm
+            with _imu_lock:
+                _latest_imu_quat_raw[:] = q
+                _imu_data_received = True
+
+rclpy.init()
+imu_node = ImuListener()
+
+# NOTE: previously this ran rclpy.spin() on a background daemon thread.
+# Genesis's GPU/Taichi compute in the main thread can hold the GIL for
+# long stretches without yielding, which starves that background thread --
+# so the ROS callback would only fire sporadically (enough to satisfy the
+# wait loop below once, then rarely afterward), making the arm/IMU box
+# appear frozen even though data is flowing on the wire. Switching to
+# spin_once() called explicitly once per sim frame (see the main loop
+# below) makes IMU processing deterministic and removes the thread
+# entirely -- no more reliance on OS/GIL scheduling fairness.
+
+print(f"[IMU] Waiting for first message on '{IMU_TOPIC}' ...")
+while not _imu_data_received:
+    rclpy.spin_once(imu_node, timeout_sec=0.05)
+print("[IMU] Real IMU data received. Teleoperation ready.")
 
 imu_pos      = np.array([1.5, 0.0, 1.0], dtype=float)
-imu_quat     = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
 imu_ref_pos  = imu_pos.copy()
-imu_ref_quat = imu_quat.copy()
 
-# EE-facing rotation accumulator (kept separate from imu_quat so the
-# imu_entity gizmo's visual behavior stays completely unchanged; this one
-# has pitch/yaw inverted per-axis before composition, see EE_AXIS_SIGN).
-imu_quat_ee     = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
-imu_ref_quat_ee = imu_quat_ee.copy()
+with _imu_lock:
+    imu_quat     = _latest_imu_quat_raw.copy()   # current absolute sensor orientation
+    imu_ref_quat = _latest_imu_quat_raw.copy()   # "zero" reference -- re-settable via SPACE
 
 ee_target_pos  = ee_home_pos.copy()
 ee_target_quat = ee_home_quat.copy()
 
 MOVE_STEP     = 0.005
-ROT_STEP      = 0.02
 POS_SCALE     = 1.0
-MAX_TILT_RAD  = np.radians(90)
+MAX_TILT_RAD  = np.radians(60)
 SMOOTH        = 0.15
 MAX_JUMP_RAD  = 0.3
 
@@ -181,13 +230,15 @@ step_count = 0
 
 last_good_qpos = None
 current_qpos   = None
+_consec_jump_rejects = 0
+MAX_CONSEC_JUMP_REJECTS = 10  # if a "jump" persists this many frames in a row,
+                              # it's real sustained motion, not a one-frame glitch --
+                              # accept it instead of freezing forever
 
 # ── Ultrasound image-per-body-part config ────────────────────────────────
-# Add a new body part -> just add one line here pointing at its frames folder.
 BODY_PART_IMAGE_FOLDERS = {
     'T8':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/T8/',
     'L5':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/L5/',
-    # 'Pelvis': '/home/deviant/IIIT_intern/assets/ultrasound_images/pelvis/',
     'L3':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/L3',
     'T12':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/T12',
 }
@@ -231,10 +282,15 @@ def quat_to_euler_deg(q):
     return np.degrees([roll, pitch, yaw])
 
 # ── Frame calibration (IMU-local axes -> EE-local axes) ─────────────────
-# Confirmed: a 90 deg rotation about Z maps IMU-local Y (pitch) onto
-# EE-local X (pitch/roll axis correctly). Sign flipped from -90 to +90
-# to correct the direction (was rotating opposite to the IMU's motion).
 R_CALIB = axis_angle_to_quat([0, 0, 1], -np.pi / 2)
+
+# Inverts pitch & yaw while leaving roll untouched, for ANY combined
+# rotation (not just single-axis test cases). Conjugating a rotation by a
+# 180 deg turn about the roll (X) axis maps its axis (ax,ay,az) -> (ax,-ay,-az)
+# while preserving the angle -- exactly "keep roll, flip pitch and yaw."
+# This is the direct generalization of the sign-per-keypress trick used
+# during keyboard testing, proven equivalent for composed rotations too.
+R_FLIP_PITCH_YAW = axis_angle_to_quat([1, 0, 0], np.pi)
 
 def frame_transform(delta, R):
     """Re-express a local-frame delta rotation in another frame's local axes."""
@@ -247,27 +303,12 @@ KEY_MAP = {
     pyglet_key.LEFT     : ('pos', 1, -MOVE_STEP),
     pyglet_key.E        : ('pos', 2,  MOVE_STEP),
     pyglet_key.Q        : ('pos', 2, -MOVE_STEP),
-    pyglet_key.Y        : ('rot', [1,0,0],  ROT_STEP),
-    pyglet_key.U        : ('rot', [1,0,0], -ROT_STEP),
-    pyglet_key.J        : ('rot', [0,1,0],  ROT_STEP),
-    pyglet_key.K        : ('rot', [0,1,0], -ROT_STEP),
-    pyglet_key.B        : ('rot', [0,0,1],  ROT_STEP),
-    pyglet_key.N        : ('rot', [0,0,1], -ROT_STEP),
-}
-
-# Per-key sign correction applied ONLY to the EE-facing accumulator
-# (imu_quat_ee). Roll (Y/U) is left unchanged since it was already
-# correct; pitch (J/K) and yaw (B/N) are inverted here.
-EE_AXIS_SIGN = {
-    pyglet_key.Y: 1,   pyglet_key.U: 1,     # roll  -> unchanged
-    pyglet_key.J: -1,  pyglet_key.K: -1,    # pitch -> inverted
-    pyglet_key.B: -1,  pyglet_key.N: -1,    # yaw   -> inverted
+    # Rotation keys (Y/U/J/K/B/N) removed -- orientation now comes from the
+    # real IMU over micro-ROS instead of simulated keypresses.
 }
 
 def clamp_rotation(q, q_ref, max_angle):
-    """Clamp q's total rotation relative to q_ref to at most max_angle.
-    Generic version of the original clamp body, reusable for both
-    imu_quat (visual gizmo) and imu_quat_ee (EE-driving)."""
+    """Clamp q's total rotation relative to q_ref to at most max_angle."""
     delta = quat_mul(quat_conjugate(q_ref), q)
 
     w = np.clip(delta[0], -1.0, 1.0)
@@ -291,13 +332,13 @@ def clamp_rotation(q, q_ref, max_angle):
     return q
 
 def clamp_imu_rotation():
-    """Clamp BOTH accumulators independently: imu_quat (drives the visual
-    gizmo) and imu_quat_ee (drives the arm). Previously only imu_quat was
-    clamped here, so the gizmo respected MAX_TILT_RAD but the arm — which
-    reads from imu_quat_ee — did not."""
-    global imu_quat, imu_quat_ee
-    imu_quat    = clamp_rotation(imu_quat,    imu_ref_quat,    MAX_TILT_RAD)
-    imu_quat_ee = clamp_rotation(imu_quat_ee, imu_ref_quat_ee, MAX_TILT_RAD)
+    """Clamp the real IMU's total rotation (relative to the zeroed
+    reference) to MAX_TILT_RAD. Since frame_transform (used below for the
+    pitch/yaw flip and mounting calibration) is a conjugation, it preserves
+    rotation angle -- clamping here is sufficient to guarantee the EE's
+    commanded tilt is also bounded; no separate downstream clamp needed."""
+    global imu_quat
+    imu_quat = clamp_rotation(imu_quat, imu_ref_quat, MAX_TILT_RAD)
 
 def safe_ik(ee_pos, ee_quat):
     global last_good_qpos
@@ -347,29 +388,24 @@ def smooth_ik(target_qpos):
     return current_qpos
 
 def update_imu():
-    global imu_pos, imu_quat, imu_quat_ee
+    global imu_pos, imu_quat, imu_ref_quat
 
+    # Position still comes from the keyboard (arrows + E/Q), unchanged.
     for sym, action in KEY_MAP.items():
         if sym not in keys_pressed:
             continue
-        if action[0] == 'pos':
-            _, axis, delta = action
-            imu_pos[axis] += delta
-        else:
-            _, ax, angle = action
-            # Visual gizmo accumulator — unchanged, drives imu_entity directly.
-            imu_quat = quat_mul(imu_quat, axis_angle_to_quat(ax, angle))
-            # EE-facing accumulator — pitch/yaw inverted per EE_AXIS_SIGN.
-            sign = EE_AXIS_SIGN.get(sym, 1)
-            imu_quat_ee = quat_mul(imu_quat_ee, axis_angle_to_quat(ax, sign * angle))
+        _, axis, delta = action
+        imu_pos[axis] += delta
+
+    # Orientation now comes from the real IMU over micro-ROS.
+    with _imu_lock:
+        imu_quat[:] = _latest_imu_quat_raw
 
     if pyglet_key.SPACE in keys_pressed:
-        imu_pos[:]     = imu_ref_pos
-        imu_quat[:]    = imu_ref_quat
-        imu_quat_ee[:] = imu_ref_quat_ee
+        imu_pos[:]      = imu_ref_pos
+        imu_ref_quat[:] = imu_quat   # re-zero orientation to wherever the sensor is right now
 
-    imu_quat    /= np.linalg.norm(imu_quat)
-    imu_quat_ee /= np.linalg.norm(imu_quat_ee)
+    imu_quat /= np.linalg.norm(imu_quat)
 
 def imu_to_ee_target():
     global ee_target_pos, ee_target_quat
@@ -381,54 +417,12 @@ def imu_to_ee_target():
         [ 0.7,  0.6, 1.8],
     )
 
-    delta_quat_imu_ee = quat_mul(quat_conjugate(imu_ref_quat_ee), imu_quat_ee)
-    delta_quat_ee     = frame_transform(delta_quat_imu_ee, R_CALIB)
+    delta_quat_imu  = quat_mul(quat_conjugate(imu_ref_quat), imu_quat)
+    delta_quat_flip = frame_transform(delta_quat_imu, R_FLIP_PITCH_YAW)   # invert pitch & yaw, keep roll
+    delta_quat_ee   = frame_transform(delta_quat_flip, R_CALIB)           # IMU-mount -> EE-mount calibration
 
     ee_target_quat = quat_mul(ee_home_quat, delta_quat_ee)
     ee_target_quat /= np.linalg.norm(ee_target_quat)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 def get_probe_contact_force():
     """Return the 3D contact force vector on probe_link from contact with
@@ -504,17 +498,13 @@ def get_probe_contact_body_part():
     if not np.any(probe_mask):
         return None
 
-    # Figure out which side is the probe vs the human for each contact row
     a_is_probe = (link_a[probe_mask] == probe_link.idx)
 
-    # human-side link index and the force exerted on the human at that link
     human_link_idx = np.where(a_is_probe, link_b[probe_mask], link_a[probe_mask])
     human_force    = np.where(
         a_is_probe[:, None], forces_b[probe_mask], forces_a[probe_mask]
     )
 
-    # Aggregate force magnitude per unique human link (a link can appear
-    # in multiple contact points, e.g. probe tip touching a curved surface)
     part_forces = {}
     for idx, f in zip(human_link_idx, human_force):
         name = human_link_names.get(int(idx), f"unknown_link_{int(idx)}")
@@ -542,8 +532,6 @@ def print_probe_body_part():
 
 
 # ── Ultrasound image display ─────────────────────────────────────────────
-# Advances to the next frame whenever the probe's position or orientation
-# changes noticeably while touching a mapped body part.
 POS_CHANGE_THRESH = 0.002   # meters
 ROT_CHANGE_THRESH = 0.02    # radians
 
@@ -553,10 +541,6 @@ _last_pos     = None
 _last_quat    = None
 
 def get_current_ultrasound_image(ee_pos, ee_quat):
-    """Return the ultrasound frame image for the current probe contact.
-    The frame advances only when ee_pos/ee_quat changes enough since the
-    last check; otherwise the same frame keeps showing. Returns None if
-    the probe isn't touching a body part that has images mapped."""
     global _frame_idx, _active_part, _last_pos, _last_quat
 
     parts = get_probe_contact_body_part()
@@ -574,7 +558,6 @@ def get_current_ultrasound_image(ee_pos, ee_quat):
     if not frames:
         return None
 
-    # reset playback when we start touching a new/different part
     if part_name != _active_part:
         _active_part = part_name
         _frame_idx   = 0
@@ -595,10 +578,8 @@ def get_current_ultrasound_image(ee_pos, ee_quat):
 
 
 # ── Live plots ────────────────────────────────────────────────────────
-# Window 1: EEF orientation + probe contact force
-# Window 2: Ultrasound image feed (separate, standalone window)
-HISTORY_LEN        = 300   # rolling window length (samples)
-PLOT_UPDATE_EVERY  = 5     # redraw every N sim steps
+HISTORY_LEN        = 300
+PLOT_UPDATE_EVERY  = 5
 
 t_hist       = deque(maxlen=HISTORY_LEN)
 roll_hist    = deque(maxlen=HISTORY_LEN)
@@ -608,7 +589,6 @@ fmag_hist    = deque(maxlen=HISTORY_LEN)
 
 plt.ion()
 
-# ── Window 1: EEF orientation + contact force ─────────────────────────
 fig, (ax_orient, ax_force) = plt.subplots(
     2, 1, figsize=(8, 7),
 )
@@ -632,7 +612,6 @@ ax_force.grid(True, alpha=0.3)
 
 fig.tight_layout()
 
-# ── Window 2: Ultrasound image feed (standalone window) ────────────────
 fig_usg, ax_image = plt.subplots(figsize=(6, 6))
 fig_usg.canvas.manager.set_window_title("Ultrasound View")
 ax_image.set_title("Ultrasound View")
@@ -641,7 +620,6 @@ image_artist = ax_image.imshow(np.zeros((10, 10, 3)))
 image_artist.set_visible(False)
 fig_usg.tight_layout()
 
-# Placeholder text shown when the probe isn't touching a mapped body part
 no_signal_text = ax_image.text(
     0.5, 0.5, "No probe contact",
     ha='center', va='center', transform=ax_image.transAxes,
@@ -650,7 +628,6 @@ no_signal_text = ax_image.text(
 
 
 def update_live_plot(step, ee_quat, force):
-    """Updates the orientation/force window only (fig)."""
     t_hist.append(step)
 
     roll, pitch, yaw = quat_to_euler_deg(ee_quat)
@@ -680,7 +657,6 @@ def update_live_plot(step, ee_quat, force):
 
 
 def update_usg_window(img):
-    """Updates the standalone ultrasound window (fig_usg)."""
     if img is None:
         image_artist.set_visible(False)
         no_signal_text.set_visible(True)
@@ -694,6 +670,7 @@ def update_usg_window(img):
 
 try:
     while True:
+        rclpy.spin_once(imu_node, timeout_sec=0.0)  # non-blocking: process any pending IMU message now
         update_imu()
         clamp_imu_rotation()
         imu_to_ee_target()
@@ -702,6 +679,20 @@ try:
         imu_entity.set_quat(imu_quat)
 
         raw_qpos = safe_ik(ee_target_pos, ee_target_quat)
+
+        # --- DEBUG: pipeline trace, throttled to the same cadence as the
+        # existing contact-force prints so it doesn't flood the terminal ---
+        if step_count % FORCE_PRINT_EVERY == 0:
+            print(f"[DBG] imu_quat        = {np.round(imu_quat, 3)}")
+            print(f"[DBG] imu_ref_quat    = {np.round(imu_ref_quat, 3)}")
+            print(f"[DBG] ee_target_pos   = {np.round(ee_target_pos, 3)}  (home={np.round(ee_home_pos, 3)})")
+            print(f"[DBG] ee_target_quat  = {np.round(ee_target_quat, 3)}  (home={np.round(ee_home_quat, 3)})")
+            _cur_qpos = ur5e.get_dofs_position(dofs_idx)
+            if hasattr(_cur_qpos, 'cpu'):
+                _cur_qpos = _cur_qpos.cpu().numpy()
+            print(f"[DBG] actual arm qpos = {np.round(_cur_qpos, 3)}")
+            if raw_qpos is None:
+                print("[DBG] raw_qpos is None -- safe_ik() rejected this frame")
 
         if raw_qpos is None:
             scene.step()
@@ -733,3 +724,9 @@ try:
 
 except KeyboardInterrupt:
     print("\n[IMU] Simulation stopped.")
+finally:
+    try:
+        imu_node.destroy_node()
+    except Exception:
+        pass
+    rclpy.shutdown()            

@@ -72,7 +72,8 @@ void setup() {
   setReports();
 
   Serial.println("connecting wifi transport...");
-  set_microros_wifi_transports("OPPO", "123456789", "10.131.2.181", 8888);
+  set_microros_transports();
+  // set_microros_wifi_transports("OPPO", "123456789", "10.131.2.181", 8888);
   Serial.println("wifi transport up");
   digitalWrite(LED_PIN, HIGH);   // ON while micro-ROS is initializing
 
