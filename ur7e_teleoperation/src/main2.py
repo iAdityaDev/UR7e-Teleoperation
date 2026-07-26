@@ -8,8 +8,54 @@ from collections import deque
 import os
 import glob
 import time
+import threading
+
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
+from rclpy.signals import SignalHandlerOptions
+from sensor_msgs.msg import Imu as ImuMsg
 
 gs.init(backend=gs.gpu)
+
+# ── Live IMU input (BNO085 over micro-ROS) ───────────────────────────────
+# CONFIGURE these two to match your setup:
+IMU_TOPIC = '/imu/data'   # <-- change to the actual topic your micro-ROS agent publishes on
+
+class BNO085Subscriber(Node):
+    """Subscribes to the live IMU topic and exposes the latest orientation
+    quaternion in a thread-safe way, reordered to this script's (w, x, y, z)
+    convention (sensor_msgs/Imu.orientation is x, y, z, w)."""
+
+    def __init__(self, topic_name):
+        super().__init__('genesis_teleop_imu_subscriber')
+        self._lock = threading.Lock()
+        self._quat = np.array([1.0, 0.0, 0.0, 0.0])
+        self._has_data = False
+        # micro-ROS publishers are almost always BEST_EFFORT; this profile
+        # matches that. If you get zero messages, check
+        # `ros2 topic info <topic> --verbose` and adjust QoS here.
+        self.create_subscription(ImuMsg, topic_name, self._callback, qos_profile_sensor_data)
+        self.get_logger().info(f'Subscribed to {topic_name}, waiting for data...')
+
+    def _callback(self, msg):
+        if len(msg.orientation_covariance) and msg.orientation_covariance[0] == -1.0:
+            return  # driver is reporting "orientation not available"
+        q = msg.orientation
+        with self._lock:
+            self._quat = np.array([q.w, q.x, q.y, q.z])
+            self._has_data = True
+
+    def get_quat(self):
+        with self._lock:
+            return self._quat.copy(), self._has_data
+
+
+# signal_handler_options=NO keeps rclpy from grabbing SIGINT, so Ctrl+C
+# still raises KeyboardInterrupt in the main loop exactly as before.
+rclpy.init(args=None, signal_handler_options=SignalHandlerOptions.NO)
+imu_node = BNO085Subscriber(IMU_TOPIC)
+threading.Thread(target=rclpy.spin, args=(imu_node,), daemon=True).start()
 
 scene = gs.Scene(
     profiling_options=gs.options.ProfilingOptions(
@@ -155,6 +201,22 @@ print(f"[INIT] Home pos {np.round(ee_home_pos,  3)}")
 print(f"[INIT] Home quat {np.round(ee_home_quat, 4)}")
 print("[INIT] Teleoperation ready")
 
+print(f"[IMU] Waiting for first sample on {IMU_TOPIC} ...")
+_wait_start = time.time()
+while True:
+    _raw_quat, _got = imu_node.get_quat()
+    if _got:
+        break
+    if time.time() - _wait_start > 10.0:
+        print(f"[IMU] WARNING: no data received on {IMU_TOPIC} after 10s — "
+              f"check the topic name, that the micro-ROS agent is running, "
+              f"and QoS compatibility. Continuing with identity orientation.")
+        break
+    time.sleep(0.05)
+
+imu_ref_quat_raw = _raw_quat.copy()   # current physical sensor pose = "home"
+print(f"[IMU] Calibrated. Raw ref quat (w,x,y,z): {np.round(imu_ref_quat_raw, 4)}")
+
 imu_pos      = np.array([1.5, 0.0, 1.0], dtype=float)
 imu_quat     = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
 imu_ref_pos  = imu_pos.copy()
@@ -174,7 +236,7 @@ ROT_STEP      = 0.02
 POS_SCALE     = 1.0
 MAX_TILT_RAD  = np.radians(90)
 SMOOTH        = 0.15
-MAX_JUMP_RAD  = 0.3
+MAX_JUMP_RAD  = 3.0
 
 FORCE_PRINT_EVERY = 30
 step_count = 0
@@ -247,22 +309,19 @@ KEY_MAP = {
     pyglet_key.LEFT     : ('pos', 1, -MOVE_STEP),
     pyglet_key.E        : ('pos', 2,  MOVE_STEP),
     pyglet_key.Q        : ('pos', 2, -MOVE_STEP),
-    pyglet_key.Y        : ('rot', [1,0,0],  ROT_STEP),
-    pyglet_key.U        : ('rot', [1,0,0], -ROT_STEP),
-    pyglet_key.J        : ('rot', [0,1,0],  ROT_STEP),
-    pyglet_key.K        : ('rot', [0,1,0], -ROT_STEP),
-    pyglet_key.B        : ('rot', [0,0,1],  ROT_STEP),
-    pyglet_key.N        : ('rot', [0,0,1], -ROT_STEP),
 }
+# Rotation used to come from Y/U/J/K/B/N here — it now comes live from the
+# BNO085 instead (see update_imu()), so only translation keys remain.
 
-# Per-key sign correction applied ONLY to the EE-facing accumulator
-# (imu_quat_ee). Roll (Y/U) is left unchanged since it was already
-# correct; pitch (J/K) and yaw (B/N) are inverted here.
-EE_AXIS_SIGN = {
-    pyglet_key.Y: 1,   pyglet_key.U: 1,     # roll  -> unchanged
-    pyglet_key.J: -1,  pyglet_key.K: -1,    # pitch -> inverted
-    pyglet_key.B: -1,  pyglet_key.N: -1,    # yaw   -> inverted
-}
+def mirror_pitch_yaw(q):
+    """Replaces the old per-key EE_AXIS_SIGN. Negating a quaternion's y,z
+    components re-expresses the same delta rotation with roll (x) left
+    alone and pitch/yaw (y,z) inverted — exactly what EE_AXIS_SIGN did per
+    keypress, just applied once to the live sensor delta instead of once
+    per key. Flip the signs below first if the arm tilts opposite to your
+    wrist once you're testing on hardware."""
+    w, x, y, z = q
+    return np.array([w, x, -y, -z])
 
 def clamp_rotation(q, q_ref, max_angle):
     """Clamp q's total rotation relative to q_ref to at most max_angle.
@@ -347,26 +406,32 @@ def smooth_ik(target_qpos):
     return current_qpos
 
 def update_imu():
-    global imu_pos, imu_quat, imu_quat_ee
+    global imu_pos, imu_quat, imu_quat_ee, imu_ref_quat_raw
 
+    # Position: keyboard only — the BNO085 gives orientation, not translation.
     for sym, action in KEY_MAP.items():
         if sym not in keys_pressed:
             continue
-        if action[0] == 'pos':
-            _, axis, delta = action
-            imu_pos[axis] += delta
-        else:
-            _, ax, angle = action
-            # Visual gizmo accumulator — unchanged, drives imu_entity directly.
-            imu_quat = quat_mul(imu_quat, axis_angle_to_quat(ax, angle))
-            # EE-facing accumulator — pitch/yaw inverted per EE_AXIS_SIGN.
-            sign = EE_AXIS_SIGN.get(sym, 1)
-            imu_quat_ee = quat_mul(imu_quat_ee, axis_angle_to_quat(ax, sign * angle))
+        _, axis, delta = action
+        imu_pos[axis] += delta
+
+    # Orientation: pulled live from the sensor every frame.
+    raw_quat, got_data = imu_node.get_quat()
+    if got_data:
+        delta_raw = quat_mul(quat_conjugate(imu_ref_quat_raw), raw_quat)
+        delta_raw /= np.linalg.norm(delta_raw)
+
+        # Visual gizmo — raw sensor delta, unmirrored, drives imu_entity directly.
+        imu_quat = quat_mul(imu_ref_quat, delta_raw)
+        # EE-facing accumulator — pitch/yaw mirrored, same effect as the old EE_AXIS_SIGN.
+        imu_quat_ee = quat_mul(imu_ref_quat_ee, mirror_pitch_yaw(delta_raw))
 
     if pyglet_key.SPACE in keys_pressed:
         imu_pos[:]     = imu_ref_pos
         imu_quat[:]    = imu_ref_quat
         imu_quat_ee[:] = imu_ref_quat_ee
+        if got_data:
+            imu_ref_quat_raw = raw_quat.copy()   # re-zero to the current physical pose
 
     imu_quat    /= np.linalg.norm(imu_quat)
     imu_quat_ee /= np.linalg.norm(imu_quat_ee)
@@ -391,7 +456,7 @@ def imu_to_ee_target():
 try:
     while True:
         update_imu()
-        clamp_imu_rotation()
+        # clamp_imu_rotation()
         imu_to_ee_target()
 
         imu_entity.set_pos(imu_pos)
@@ -411,3 +476,6 @@ try:
 
 except KeyboardInterrupt:
     print("\n[IMU] Simulation stopped.")
+finally:
+    imu_node.destroy_node()
+    rclpy.shutdown()
