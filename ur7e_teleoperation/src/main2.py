@@ -32,6 +32,7 @@ class BNO085Subscriber(Node):
         self._lock = threading.Lock()
         self._quat = np.array([1.0, 0.0, 0.0, 0.0])
         self._has_data = False
+        self._last_recv_time = None
         # micro-ROS publishers are almost always BEST_EFFORT; this profile
         # matches that. If you get zero messages, check
         # `ros2 topic info <topic> --verbose` and adjust QoS here.
@@ -45,10 +46,18 @@ class BNO085Subscriber(Node):
         with self._lock:
             self._quat = np.array([q.w, q.x, q.y, q.z])
             self._has_data = True
+            self._last_recv_time = time.time()
 
     def get_quat(self):
         with self._lock:
             return self._quat.copy(), self._has_data
+
+    def data_age(self):
+        """Seconds since the last message arrived. inf if none has arrived yet."""
+        with self._lock:
+            if self._last_recv_time is None:
+                return float('inf')
+            return time.time() - self._last_recv_time
 
 
 # signal_handler_options=NO keeps rclpy from grabbing SIGINT, so Ctrl+C
@@ -102,7 +111,7 @@ ur5e = scene.add_entity(
 )
 
 imu_entity = scene.add_entity(
-    gs.morphs.Box(size=(0.06, 0.04, 0.01), pos=(1.5, 0.0, 1.0), fixed=True)
+    gs.morphs.Box(size=(0.06, 0.04, 0.01), pos=(1.5, 0.0, 1.0), euler=(90, 180, 90), fixed=True)
 )
 
 
@@ -218,13 +227,20 @@ imu_ref_quat_raw = _raw_quat.copy()   # current physical sensor pose = "home"
 print(f"[IMU] Calibrated. Raw ref quat (w,x,y,z): {np.round(imu_ref_quat_raw, 4)}")
 
 imu_pos      = np.array([1.5, 0.0, 1.0], dtype=float)
-imu_quat     = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
+# Matches the imu_entity Box's euler=(90, 180, 90) (Genesis: scipy extrinsic
+# x-y-z, degrees), converted to Genesis's own w-x-y-z quaternion convention
+# and verified against scipy.spatial.transform.Rotation directly. Without
+# this, imu_quat would default to identity and the gizmo would snap away
+# from its intended pose the instant the main loop starts.
+imu_quat     = np.array([0.5, -0.5, 0.5, -0.5], dtype=float)
 imu_ref_pos  = imu_pos.copy()
 imu_ref_quat = imu_quat.copy()
 
 # EE-facing rotation accumulator (kept separate from imu_quat so the
 # imu_entity gizmo's visual behavior stays completely unchanged; this one
 # has pitch/yaw inverted per-axis before composition, see EE_AXIS_SIGN).
+# Deliberately left at identity — it's a pure math reference for driving
+# the arm, not tied to the gizmo's cosmetic starting pose above.
 imu_quat_ee     = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
 imu_ref_quat_ee = imu_quat_ee.copy()
 
@@ -239,7 +255,7 @@ MAX_STEP_RAD  = 0.08   # per-step joint-angle rate limit (rad) — replaces expo
                        # SMOOTH, which added a fixed lag every frame regardless of
                        # motion size. Raise this for even less lag, lower it if
                        # sensor jitter starts showing up as visible arm shake.
-MAX_JUMP_RAD  = 10.0
+MAX_JUMP_RAD  = 10.3
 
 FORCE_PRINT_EVERY = 30
 step_count = 0
@@ -296,14 +312,43 @@ def quat_to_euler_deg(q):
     return np.degrees([roll, pitch, yaw])
 
 # ── Frame calibration (IMU-local axes -> EE-local axes) ─────────────────
-# Confirmed: a 90 deg rotation about Z maps IMU-local Y (pitch) onto
-# EE-local X (pitch/roll axis correctly). Sign flipped from -90 to +90
-# to correct the direction (was rotating opposite to the IMU's motion).
-R_CALIB = axis_angle_to_quat([0, 0, 1], -np.pi / 2)
+# Superseded: replaced based on direct visual comparison of the imu_entity
+# gizmo's axes against the end-effector's axes. Observed: IMU-X matches
+# EE-X, IMU-Y matches EE-Z. A pure axis swap can't be a real rotation
+# (it'd be a mirror, determinant -1), so the third pairing is forced:
+# IMU-Z must map to -EE-Y (not +EE-Y) to keep this a valid rotation.
+#
+# VERIFY: if the arm's motion looks inverted specifically on the axis that
+# was "forced" here (Z_imu / green-axis pairing), swap the line below to
+# axis_angle_to_quat([1, 0, 0], -np.pi / 2) instead — that's the other
+# valid option (Z->+Y, but then Y->-Z instead of the pairing you saw).
+R_CALIB = axis_angle_to_quat([1, 0, 0], np.pi / 2)
 
 def frame_transform(delta, R):
     """Re-express a local-frame delta rotation in another frame's local axes."""
     return quat_mul(quat_mul(R, delta), quat_conjugate(R))
+
+# ── Mounting calibration (physical sensor mount -> "flat" reference axes) ──
+# The BNO085 is physically mounted rotated +90 deg yaw, then +90 deg pitch,
+# relative to lying flat/level with its axes pointing along X/Y/Z. This
+# undoes that fixed offset so delta_raw (in update_imu()) is re-expressed
+# as if the sensor were mounted flat, BEFORE R_CALIB touches
+# it below — otherwise those two would be operating on the wrong axes.
+#
+# Assumes roll=X, pitch=Y, yaw=Z (same convention as the rest of this
+# script). Composed as intrinsic/body-frame rotations in the order you
+# described: yaw applied first, pitch second (about the now-yawed axes) —
+# matching this script's existing right-multiply-to-append convention.
+#
+# VERIFY THIS EMPIRICALLY: rotate the physical sensor about ONE known axis
+# at a time (pure roll, then pure pitch, then pure yaw) and temporarily
+# print quat_to_euler_deg(delta_raw) inside update_imu() — each test should
+# show up almost entirely on its expected axis. If it shows up on the
+# wrong axis, or the wrong sign, swap the multiplication order below or
+# negate the angle on the offending axis-angle term.
+MOUNT_YAW90   = axis_angle_to_quat([0, 0, 1], np.pi / 2)
+MOUNT_PITCH90 = axis_angle_to_quat([0, 1, 0], np.pi / 2)
+MOUNT_CALIB   = quat_mul(MOUNT_YAW90, MOUNT_PITCH90)   # yaw first, then pitch
 
 KEY_MAP = {
     pyglet_key.UP       : ('pos', 0,  MOVE_STEP),
@@ -315,16 +360,9 @@ KEY_MAP = {
 }
 # Rotation used to come from Y/U/J/K/B/N here — it now comes live from the
 # BNO085 instead (see update_imu()), so only translation keys remain.
-
-def mirror_pitch_yaw(q):
-    """Replaces the old per-key EE_AXIS_SIGN. Negating a quaternion's y,z
-    components re-expresses the same delta rotation with roll (x) left
-    alone and pitch/yaw (y,z) inverted — exactly what EE_AXIS_SIGN did per
-    keypress, just applied once to the live sensor delta instead of once
-    per key. Flip the signs below first if the arm tilts opposite to your
-    wrist once you're testing on hardware."""
-    w, x, y, z = q
-    return np.array([w, x, -y, -z])
+# mirror_pitch_yaw() used to live here as a guessed sign-flip; it's gone
+# now that R_CALIB (above) encodes the actual measured IMU->EE axis
+# correspondence — stacking the old heuristic on top would double-count.
 
 def clamp_rotation(q, q_ref, max_angle):
     """Clamp q's total rotation relative to q_ref to at most max_angle.
@@ -414,8 +452,11 @@ def smooth_ik(target_qpos):
     current_qpos = current_qpos + delta
     return current_qpos
 
+STALE_THRESHOLD_S = 0.15   # if no new IMU sample in this long, the arm is running on old data
+_was_stale = False
+
 def update_imu():
-    global imu_pos, imu_quat, imu_quat_ee, imu_ref_quat_raw
+    global imu_pos, imu_quat, imu_quat_ee, imu_ref_quat_raw, _was_stale
 
     # Position: keyboard only — the BNO085 gives orientation, not translation.
     for sym, action in KEY_MAP.items():
@@ -424,16 +465,29 @@ def update_imu():
         _, axis, delta = action
         imu_pos[axis] += delta
 
+    # Flag stale data so you can see, live, when the arm is "frozen" waiting
+    # on the transport rather than anything in this script.
+    age = imu_node.data_age()
+    if age > STALE_THRESHOLD_S and not _was_stale:
+        print(f"[IMU] STALE: no new sample for {age:.2f}s — check the micro-ROS link")
+        _was_stale = True
+    elif age <= STALE_THRESHOLD_S and _was_stale:
+        print(f"[IMU] Recovered after {age:.3f}s gap")
+        _was_stale = False
+
     # Orientation: pulled live from the sensor every frame.
     raw_quat, got_data = imu_node.get_quat()
     if got_data:
         delta_raw = quat_mul(quat_conjugate(imu_ref_quat_raw), raw_quat)
         delta_raw /= np.linalg.norm(delta_raw)
+        delta_raw = frame_transform(delta_raw, MOUNT_CALIB)   # undo the physical mount offset
+        delta_raw /= np.linalg.norm(delta_raw)
 
-        # Visual gizmo — raw sensor delta, unmirrored, drives imu_entity directly.
+        # Visual gizmo — raw sensor delta (mount-corrected only), drives imu_entity directly.
         imu_quat = quat_mul(imu_ref_quat, delta_raw)
-        # EE-facing accumulator — pitch/yaw mirrored, same effect as the old EE_AXIS_SIGN.
-        imu_quat_ee = quat_mul(imu_ref_quat_ee, mirror_pitch_yaw(delta_raw))
+        # EE-facing accumulator — same delta; R_CALIB (in imu_to_ee_target) does the
+        # full IMU-axes -> EE-axes remap on its own now, no separate mirroring needed.
+        imu_quat_ee = quat_mul(imu_ref_quat_ee, delta_raw)
 
     if pyglet_key.SPACE in keys_pressed:
         imu_pos[:]     = imu_ref_pos
