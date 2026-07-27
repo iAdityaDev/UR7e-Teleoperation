@@ -235,8 +235,11 @@ MOVE_STEP     = 0.005
 ROT_STEP      = 0.02
 POS_SCALE     = 1.0
 MAX_TILT_RAD  = np.radians(90)
-SMOOTH        = 0.15
-MAX_JUMP_RAD  = 3.0
+MAX_STEP_RAD  = 0.08   # per-step joint-angle rate limit (rad) — replaces exponential
+                       # SMOOTH, which added a fixed lag every frame regardless of
+                       # motion size. Raise this for even less lag, lower it if
+                       # sensor jitter starts showing up as visible arm shake.
+MAX_JUMP_RAD  = 10.0
 
 FORCE_PRINT_EVERY = 30
 step_count = 0
@@ -396,13 +399,19 @@ def safe_ik(ee_pos, ee_quat):
     return qpos
 
 def smooth_ik(target_qpos):
+    """Rate-limits joint targets instead of exponentially smoothing them.
+    Exponential smoothing always lags behind the target by construction,
+    even for small legitimate motions. Rate-limiting tracks the target
+    immediately as long as the per-step change is under MAX_STEP_RAD, and
+    only slows down for genuinely large/fast jumps."""
     global current_qpos
 
     if current_qpos is None:
         current_qpos = target_qpos.copy()
         return current_qpos
 
-    current_qpos = current_qpos + SMOOTH * (target_qpos - current_qpos)
+    delta = np.clip(target_qpos - current_qpos, -MAX_STEP_RAD, MAX_STEP_RAD)
+    current_qpos = current_qpos + delta
     return current_qpos
 
 def update_imu():
@@ -456,7 +465,7 @@ def imu_to_ee_target():
 try:
     while True:
         update_imu()
-        # clamp_imu_rotation()
+        clamp_imu_rotation()
         imu_to_ee_target()
 
         imu_entity.set_pos(imu_pos)
