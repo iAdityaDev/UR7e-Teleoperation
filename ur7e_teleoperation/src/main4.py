@@ -24,16 +24,13 @@ IMU_TOPIC = '/imu/data'   # <-- change to the actual topic your micro-ROS agent 
 
 class BNO085Subscriber(Node):
     """Subscribes to the live IMU topic and exposes the latest orientation
-    quaternion AND linear acceleration in a thread-safe way. Orientation is
-    reordered to this script's (w, x, y, z) convention (sensor_msgs/Imu.orientation
-    is x, y, z, w). Acceleration is kept in the sensor's raw (x, y, z) order,
-    in m/s^2, gravity-compensated by the BNO08x's SH2_LINEAR_ACCELERATION report."""
+    quaternion in a thread-safe way, reordered to this script's (w, x, y, z)
+    convention (sensor_msgs/Imu.orientation is x, y, z, w)."""
 
     def __init__(self, topic_name):
         super().__init__('genesis_teleop_imu_subscriber')
         self._lock = threading.Lock()
         self._quat = np.array([1.0, 0.0, 0.0, 0.0])
-        self._accel = np.array([0.0, 0.0, 0.0])
         self._has_data = False
         self._last_recv_time = None
         # micro-ROS publishers are almost always BEST_EFFORT; this profile
@@ -46,20 +43,14 @@ class BNO085Subscriber(Node):
         if len(msg.orientation_covariance) and msg.orientation_covariance[0] == -1.0:
             return  # driver is reporting "orientation not available"
         q = msg.orientation
-        a = msg.linear_acceleration
         with self._lock:
             self._quat = np.array([q.w, q.x, q.y, q.z])
-            self._accel = np.array([a.x, a.y, a.z])
             self._has_data = True
             self._last_recv_time = time.time()
 
     def get_quat(self):
         with self._lock:
             return self._quat.copy(), self._has_data
-
-    def get_accel(self):
-        with self._lock:
-            return self._accel.copy(), self._has_data
 
     def data_age(self):
         """Seconds since the last message arrived. inf if none has arrived yet."""
@@ -256,7 +247,7 @@ imu_ref_quat_ee = imu_quat_ee.copy()
 ee_target_pos  = ee_home_pos.copy()
 ee_target_quat = ee_home_quat.copy()
 
-MOVE_STEP     = 0.05
+MOVE_STEP     = 0.005
 ROT_STEP      = 0.02
 POS_SCALE     = 1.0
 MAX_TILT_RAD  = np.radians(90)
@@ -265,19 +256,6 @@ MAX_STEP_RAD  = 0.08   # per-step joint-angle rate limit (rad) — replaces expo
                        # motion size. Raise this for even less lag, lower it if
                        # sensor jitter starts showing up as visible arm shake.
 MAX_JUMP_RAD  = 10.3
-
-# ── Acceleration -> translation-velocity config ──────────────────────────
-# We deliberately do NOT double-integrate accel into position (accel -> vel
-# -> pos with persistent state). That drifts unboundedly within seconds for
-# a handheld MEMS IMU. Instead we treat instantaneous accel as a proportional
-# velocity COMMAND, recomputed fresh every frame with no carried state, so
-# imu_pos only changes while there's real acceleration above the noise floor
-# and stops the instant the device is held still.
-ACCEL_DEADZONE    = 0.05   # m/s^2 — set this from real noise-floor logging
-                           # (ros2 topic echo /imu/data --field linear_acceleration
-                           # with the probe held still) before trusting this default.
-ACCEL_TO_VEL_GAIN = 0.6   # accel -> "speed" scaling, tune per feel
-VEL_MAX           = 1.0    # m/s cap, safety
 
 FORCE_PRINT_EVERY = 30
 step_count = 0
@@ -332,27 +310,6 @@ def quat_to_euler_deg(q):
     yaw = np.arctan2(siny_cosp, cosy_cosp)
 
     return np.degrees([roll, pitch, yaw])
-
-def quat_rotate_vector(q, v):
-    """Rotate a 3-vector v by quaternion q (w, x, y, z convention)."""
-    qv = np.array([0.0, v[0], v[1], v[2]])
-    rotated = quat_mul(quat_mul(q, qv), quat_conjugate(q))
-    return rotated[1:]
-
-def map_accel_to_vel(accel_vec):
-    """Deadzone + gain + clamp, per axis. No persistent velocity state is
-    kept — the output is recomputed fresh from instantaneous accel every
-    call, so when accel sits inside the deadzone (device at rest), output
-    is exactly zero and imu_pos stops changing. This is what avoids the
-    classic double-integration drift: we're not accumulating velocity,
-    we're using accel as a proportional rate command each tick."""
-    vel = np.zeros(3)
-    for i in range(3):
-        a = accel_vec[i]
-        if abs(a) < ACCEL_DEADZONE:
-            continue
-        vel[i] = np.clip(a * ACCEL_TO_VEL_GAIN, -VEL_MAX, VEL_MAX)
-    return vel
 
 # ── Frame calibration (IMU-local axes -> EE-local axes) ─────────────────
 # Superseded: replaced based on direct visual comparison of the imu_entity
@@ -476,48 +433,25 @@ def smooth_ik(target_qpos):
 
 STALE_THRESHOLD_S = 0.15   # if no new IMU sample in this long, the arm is running on old data
 _was_stale = False
-_last_update_time = None   # wall-clock time of previous update_imu() call, for accel dt
 
 def update_imu():
-    global imu_pos, imu_quat, imu_quat_ee, imu_ref_quat_raw, _was_stale, _last_update_time
+    global imu_pos, imu_quat, imu_quat_ee, imu_ref_quat_raw, _was_stale
 
-    # Position: keyboard nudges stack additively on top of accel-driven motion below.
+    # Position: keyboard only — the BNO085 gives orientation, not translation.
     for sym, action in KEY_MAP.items():
         if sym not in keys_pressed:
             continue
         _, axis, delta = action
         imu_pos[axis] += delta
 
-    # ── Acceleration-driven translation ──────────────────────────────
-    # No persistent velocity is carried between frames — vel_cmd is derived
-    # fresh from the current instantaneous accel reading each call, so this
-    # cannot accumulate drift the way accel -> vel -> pos double integration
-    # does. It only ever nudges imu_pos while accel is above the deadzone.
-    now = time.time()
-    dt = 0.0 if _last_update_time is None else (now - _last_update_time)
-    _last_update_time = now
-
-    raw_accel, got_accel = imu_node.get_accel()
-    if got_accel and dt > 0.0:
-        # Reuse R_CALIB so accel axes line up with the same IMU->EE
-        # correspondence already verified for orientation. NOTE: this is a
-        # static correction for the calibration pose only — if you rotate
-        # a lot while translating, the true world-frame direction of motion
-        # will drift relative to this approximation (rotating-frame effect).
-        # Fine for short nudge-to-translate gestures; revisit if it matters.
-        accel_ee_frame = quat_rotate_vector(R_CALIB, raw_accel)
-        vel_cmd = map_accel_to_vel(accel_ee_frame)
-        imu_pos += vel_cmd * dt
-    # ──────────────────────────────────────────────────────────────────
-
     # Flag stale data so you can see, live, when the arm is "frozen" waiting
     # on the transport rather than anything in this script.
     age = imu_node.data_age()
     if age > STALE_THRESHOLD_S and not _was_stale:
-        # print(f"[IMU] STALE: no new sample for {age:.2f}s — check the micro-ROS link")
+        print(f"[IMU] STALE: no new sample for {age:.2f}s — check the micro-ROS link")
         _was_stale = True
     elif age <= STALE_THRESHOLD_S and _was_stale:
-        # print(f"[IMU] Recovered after {age:.3f}s gap")
+        print(f"[IMU] Recovered after {age:.3f}s gap")
         _was_stale = False
 
     # Orientation: pulled live from the sensor every frame.
@@ -544,7 +478,7 @@ def update_imu():
     imu_quat    /= np.linalg.norm(imu_quat)
     imu_quat_ee /= np.linalg.norm(imu_quat_ee)
 
-DEBUG_CALIBRATION = False   # set False once R_CALIB is confirmed correct
+DEBUG_CALIBRATION = True   # set False once R_CALIB is confirmed correct
 _calib_print_counter = 0
 
 def imu_to_ee_target():
@@ -591,7 +525,7 @@ try:
 
         ur5e.control_dofs_position(final_qpos, dofs_idx_local=dofs_idx)
         scene.step()
-
+        step_count += 1
 
 except KeyboardInterrupt:
     print("\n[IMU] Simulation stopped.")
