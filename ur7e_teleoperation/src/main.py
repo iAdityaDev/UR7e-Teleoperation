@@ -174,7 +174,7 @@ ROT_STEP      = 0.02
 POS_SCALE     = 1.0
 MAX_TILT_RAD  = np.radians(90)
 SMOOTH        = 0.15
-MAX_JUMP_RAD  = 0.3
+MAX_JUMP_RAD  = 10.3
 
 FORCE_PRINT_EVERY = 30
 step_count = 0
