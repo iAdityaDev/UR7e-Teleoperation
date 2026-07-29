@@ -460,6 +460,8 @@ def update_imu():
         delta_raw = quat_mul(quat_conjugate(imu_ref_quat_raw), raw_quat)
         delta_raw /= np.linalg.norm(delta_raw)
 
+        delta_raw[1] *= -1  # local X-axis rotation direction
+        delta_raw[2] *= -1  # local Y-axis rotation direction
         # Visual gizmo — raw sensor delta, drives imu_entity directly.
         imu_quat = quat_mul(imu_ref_quat, delta_raw)
         # EE-facing accumulator — same delta; R_CALIB (in imu_to_ee_target) does the
@@ -525,50 +527,6 @@ try:
         scene.step()
 
 
-except KeyboardInterrupt:
-    print("\n[IMU] Simulation stopped.")
-finally:
-    imu_node.destroy_node()
-    rclpy.shutdown()
-
-try:
-    while True:
-        update_imu()
-        clamp_imu_rotation()
-        imu_to_ee_target()
-
-        imu_entity.set_pos(imu_pos)
-        imu_entity.set_quat(imu_quat)
-
-        raw_qpos = safe_ik(ee_target_pos, ee_target_quat)
-
-        if raw_qpos is None:
-            scene.step()
-            continue
-
-        final_qpos = smooth_ik(raw_qpos)
-
-        ur5e.control_dofs_position(final_qpos, dofs_idx_local=dofs_idx)
-        scene.step()
-
-        step_count += 1
-        if step_count % FORCE_PRINT_EVERY == 0:
-            print_contact_forces()
-            print_probe_body_part()
-
-        if step_count % PLOT_UPDATE_EVERY == 0:
-            ee_pos_now  = end_effector.get_pos()
-            ee_quat_now = end_effector.get_quat()
-            if hasattr(ee_pos_now, 'cpu'):
-                ee_pos_now = ee_pos_now.cpu().numpy()
-            if hasattr(ee_quat_now, 'cpu'):
-                ee_quat_now = ee_quat_now.cpu().numpy()
-
-            probe_force = get_probe_contact_force()
-            update_live_plot(step_count, ee_quat_now, probe_force)
-
-            img = get_current_ultrasound_image(ee_pos_now, ee_quat_now)
-            update_usg_window(img)
 except KeyboardInterrupt:
     print("\n[IMU] Simulation stopped.")
 finally:
