@@ -15,55 +15,75 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from rclpy.signals import SignalHandlerOptions
 from sensor_msgs.msg import Imu as ImuMsg
+from geometry_msgs.msg import Point as PointMsg
 
 gs.init(backend=gs.gpu)
 
 # ── Live IMU input (BNO085 over micro-ROS) ───────────────────────────────
-# CONFIGURE these two to match your setup:
-IMU_TOPIC = '/imu/data'   # <-- change to the actual topic your micro-ROS agent publishes on
+IMU_TOPIC = '/imu/data'          # orientation (+ raw accel, unused here now)
+POS_TOPIC = '/probe/position'    # Kalman+ZUPT filtered position, computed on ESP32
 
 class BNO085Subscriber(Node):
-    """Subscribes to the live IMU topic and exposes the latest orientation
-    quaternion in a thread-safe way, reordered to this script's (w, x, y, z)
-    convention (sensor_msgs/Imu.orientation is x, y, z, w)."""
+    """Subscribes to orientation AND the pre-filtered position topic.
+    All Kalman/ZUPT math now happens on the ESP32 -- this class just
+    exposes the latest values thread-safely, same pattern as before."""
 
-    def __init__(self, topic_name):
+    def __init__(self, imu_topic, pos_topic):
         super().__init__('genesis_teleop_imu_subscriber')
         self._lock = threading.Lock()
-        self._quat = np.array([1.0, 0.0, 0.0, 0.0])
-        self._has_data = False
-        self._last_recv_time = None
-        # micro-ROS publishers are almost always BEST_EFFORT; this profile
-        # matches that. If you get zero messages, check
-        # `ros2 topic info <topic> --verbose` and adjust QoS here.
-        self.create_subscription(ImuMsg, topic_name, self._callback, qos_profile_sensor_data)
-        self.get_logger().info(f'Subscribed to {topic_name}, waiting for data...')
 
-    def _callback(self, msg):
+        self._quat = np.array([1.0, 0.0, 0.0, 0.0])
+        self._has_quat = False
+        self._last_quat_time = None
+
+        self._pos = np.array([0.0, 0.0, 0.0])
+        self._has_pos = False
+        self._last_pos_time = None
+
+        self.create_subscription(ImuMsg, imu_topic, self._imu_callback, qos_profile_sensor_data)
+        self.create_subscription(PointMsg, pos_topic, self._pos_callback, qos_profile_sensor_data)
+        self.get_logger().info(f'Subscribed to {imu_topic} and {pos_topic}, waiting for data...')
+
+    def _imu_callback(self, msg):
         if len(msg.orientation_covariance) and msg.orientation_covariance[0] == -1.0:
             return  # driver is reporting "orientation not available"
         q = msg.orientation
         with self._lock:
             self._quat = np.array([q.w, q.x, q.y, q.z])
-            self._has_data = True
-            self._last_recv_time = time.time()
+            self._has_quat = True
+            self._last_quat_time = time.time()
+
+    def _pos_callback(self, msg):
+        with self._lock:
+            self._pos = np.array([msg.x, msg.y, msg.z])
+            self._has_pos = True
+            self._last_pos_time = time.time()
 
     def get_quat(self):
         with self._lock:
-            return self._quat.copy(), self._has_data
+            return self._quat.copy(), self._has_quat
+
+    def get_pos(self):
+        with self._lock:
+            return self._pos.copy(), self._has_pos
 
     def data_age(self):
-        """Seconds since the last message arrived. inf if none has arrived yet."""
+        """Seconds since the last orientation message arrived."""
         with self._lock:
-            if self._last_recv_time is None:
+            if self._last_quat_time is None:
                 return float('inf')
-            return time.time() - self._last_recv_time
+            return time.time() - self._last_quat_time
+
+    def pos_data_age(self):
+        """Seconds since the last position message arrived."""
+        with self._lock:
+            if self._last_pos_time is None:
+                return float('inf')
+            return time.time() - self._last_pos_time
 
 
-# signal_handler_options=NO keeps rclpy from grabbing SIGINT, so Ctrl+C
-# still raises KeyboardInterrupt in the main loop exactly as before.
 rclpy.init(args=None, signal_handler_options=SignalHandlerOptions.NO)
-imu_node = BNO085Subscriber(IMU_TOPIC)
+imu_node = BNO085Subscriber(IMU_TOPIC, POS_TOPIC)
 threading.Thread(target=rclpy.spin, args=(imu_node,), daemon=True).start()
 
 scene = gs.Scene(
@@ -73,7 +93,6 @@ scene = gs.Scene(
     vis_options=gs.options.VisOptions(
         show_world_frame=True,
         world_frame_size=1.0,
-        # show_link_frame=True,
         ambient_light=(0.1, 0.1, 0.1),
     ),
     viewer_options=gs.options.ViewerOptions(
@@ -113,7 +132,6 @@ ur5e = scene.add_entity(
 imu_entity = scene.add_entity(
     gs.morphs.Box(size=(0.06, 0.04, 0.01), pos=(1.5, 0.0, 1.0), euler=(90, 180, 90), fixed=True)
 )
-
 
 human = scene.add_entity(
     gs.morphs.URDF(
@@ -185,7 +203,7 @@ ur5e.set_dofs_force_range(
 home_joint_angles = np.array([
      0.0,
     -1.5708,
-     1.5708,    
+     1.5708,
     -1.5708,
     -1.5708,
      0.0,
@@ -210,7 +228,7 @@ print(f"[INIT] Home pos {np.round(ee_home_pos,  3)}")
 print(f"[INIT] Home quat {np.round(ee_home_quat, 4)}")
 print("[INIT] Teleoperation ready")
 
-print(f"[IMU] Waiting for first sample on {IMU_TOPIC} ...")
+print(f"[IMU] Waiting for first orientation sample on {IMU_TOPIC} ...")
 _wait_start = time.time()
 while True:
     _raw_quat, _got = imu_node.get_quat()
@@ -223,24 +241,29 @@ while True:
         break
     time.sleep(0.05)
 
-imu_ref_quat_raw = _raw_quat.copy()   # current physical sensor pose = "home"
+imu_ref_quat_raw = _raw_quat.copy()
 print(f"[IMU] Calibrated. Raw ref quat (w,x,y,z): {np.round(imu_ref_quat_raw, 4)}")
 
+print(f"[IMU] Waiting for first position sample on {POS_TOPIC} ...")
+_wait_start = time.time()
+pos_ref_raw = np.array([0.0, 0.0, 0.0])
+while True:
+    _raw_pos, _got_pos = imu_node.get_pos()
+    if _got_pos:
+        pos_ref_raw = _raw_pos.copy()   # ESP32's filtered position at calibration = "home"
+        break
+    if time.time() - _wait_start > 10.0:
+        print(f"[IMU] WARNING: no data received on {POS_TOPIC} after 10s — "
+              f"check the ESP32 is publishing on this topic. Continuing with zero offset.")
+        break
+    time.sleep(0.05)
+print(f"[IMU] Position calibrated. Ref pos (m): {np.round(pos_ref_raw, 4)}")
+
 imu_pos      = np.array([1.5, 0.0, 1.0], dtype=float)
-# Matches the imu_entity Box's euler=(90, 180, 90) (Genesis: scipy extrinsic
-# x-y-z, degrees), converted to Genesis's own w-x-y-z quaternion convention
-# and verified against scipy.spatial.transform.Rotation directly. Without
-# this, imu_quat would default to identity and the gizmo would snap away
-# from its intended pose the instant the main loop starts.
 imu_quat     = np.array([0.5, -0.5, 0.5, -0.5], dtype=float)
 imu_ref_pos  = imu_pos.copy()
 imu_ref_quat = imu_quat.copy()
 
-# EE-facing rotation accumulator (kept separate from imu_quat so the
-# imu_entity gizmo's visual behavior stays completely unchanged; this one
-# has pitch/yaw inverted per-axis before composition, see EE_AXIS_SIGN).
-# Deliberately left at identity — it's a pure math reference for driving
-# the arm, not tied to the gizmo's cosmetic starting pose above.
 imu_quat_ee     = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
 imu_ref_quat_ee = imu_quat_ee.copy()
 
@@ -251,11 +274,10 @@ MOVE_STEP     = 0.005
 ROT_STEP      = 0.02
 POS_SCALE     = 1.0
 MAX_TILT_RAD  = np.radians(90)
-MAX_STEP_RAD  = 0.08   # per-step joint-angle rate limit (rad) — replaces exponential
-                       # SMOOTH, which added a fixed lag every frame regardless of
-                       # motion size. Raise this for even less lag, lower it if
-                       # sensor jitter starts showing up as visible arm shake.
+MAX_STEP_RAD  = 0.08
 MAX_JUMP_RAD  = 10.3
+
+POS_STALE_THRESHOLD_S = 0.3   # if ESP32 stops publishing position this long, freeze imu_pos
 
 FORCE_PRINT_EVERY = 30
 step_count = 0
@@ -263,16 +285,13 @@ step_count = 0
 last_good_qpos = None
 current_qpos   = None
 
-# ── Ultrasound image-per-body-part config ────────────────────────────────
-# Add a new body part -> just add one line here pointing at its frames folder.
 BODY_PART_IMAGE_FOLDERS = {
     'T8':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/T8/',
     'L5':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/L5/',
-    # 'Pelvis': '/home/deviant/IIIT_intern/assets/ultrasound_images/pelvis/',
     'L3':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/L3',
     'T12':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/T12',
 }
-IMAGE_FRAME_RATE = 10   # frames per second, tweak later
+IMAGE_FRAME_RATE = 10
 
 
 def quat_mul(q1, q2):
@@ -295,7 +314,6 @@ def quat_conjugate(q):
     return np.array([q[0], -q[1], -q[2], -q[3]])
 
 def quat_to_euler_deg(q):
-
     w, x, y, z = q
     sinr_cosp = 2 * (w*x + y*z)
     cosr_cosp = 1 - 2 * (x*x + y*y)
@@ -311,17 +329,9 @@ def quat_to_euler_deg(q):
 
     return np.degrees([roll, pitch, yaw])
 
-# ── Frame calibration (IMU-local axes -> EE-local axes) ─────────────────
-# Superseded: replaced based on direct visual comparison of the imu_entity
-# gizmo's axes against the end-effector's axes. Observed: IMU-X matches
-# EE-X, IMU-Y matches EE-Z. A pure axis swap can't be a real rotation
-# (it'd be a mirror, determinant -1), so the third pairing is forced:
-# IMU-Z must map to -EE-Y (not +EE-Y) to keep this a valid rotation.
-#
-# VERIFY: if the arm's motion looks inverted specifically on the axis that
-# was "forced" here (Z_imu / green-axis pairing), swap the line below to
-# axis_angle_to_quat([1, 0, 0], -np.pi / 2) instead — that's the other
-# valid option (Z->+Y, but then Y->-Z instead of the pairing you saw).
+# R_CALIB is still needed here for ORIENTATION (imu_to_ee_target); it's no
+# longer applied to acceleration in Python since that rotation now happens
+# on the ESP32 before the Kalman filter runs.
 R_CALIB = axis_angle_to_quat([1, 0, 0], np.pi / 2)
 
 def frame_transform(delta, R):
@@ -330,23 +340,11 @@ def frame_transform(delta, R):
 
 
 KEY_MAP = {
-    pyglet_key.UP       : ('pos', 0,  MOVE_STEP),
-    pyglet_key.DOWN     : ('pos', 0, -MOVE_STEP),
-    pyglet_key.RIGHT    : ('pos', 1,  MOVE_STEP),
-    pyglet_key.LEFT     : ('pos', 1, -MOVE_STEP),
-    pyglet_key.E        : ('pos', 2,  MOVE_STEP),
-    pyglet_key.Q        : ('pos', 2, -MOVE_STEP),
+    # Translation keys removed -- position comes entirely from the ESP32's
+    # Kalman+ZUPT-filtered /probe/position topic now.
 }
-# Rotation used to come from Y/U/J/K/B/N here — it now comes live from the
-# BNO085 instead (see update_imu()), so only translation keys remain.
-# mirror_pitch_yaw() used to live here as a guessed sign-flip; it's gone
-# now that R_CALIB (above) encodes the actual measured IMU->EE axis
-# correspondence — stacking the old heuristic on top would double-count.
 
 def clamp_rotation(q, q_ref, max_angle):
-    """Clamp q's total rotation relative to q_ref to at most max_angle.
-    Generic version of the original clamp body, reusable for both
-    imu_quat (visual gizmo) and imu_quat_ee (EE-driving)."""
     delta = quat_mul(quat_conjugate(q_ref), q)
 
     w = np.clip(delta[0], -1.0, 1.0)
@@ -370,10 +368,6 @@ def clamp_rotation(q, q_ref, max_angle):
     return q
 
 def clamp_imu_rotation():
-    """Clamp BOTH accumulators independently: imu_quat (drives the visual
-    gizmo) and imu_quat_ee (drives the arm). Previously only imu_quat was
-    clamped here, so the gizmo respected MAX_TILT_RAD but the arm — which
-    reads from imu_quat_ee — did not."""
     global imu_quat, imu_quat_ee
     imu_quat    = clamp_rotation(imu_quat,    imu_ref_quat,    MAX_TILT_RAD)
     imu_quat_ee = clamp_rotation(imu_quat_ee, imu_ref_quat_ee, MAX_TILT_RAD)
@@ -416,11 +410,6 @@ def safe_ik(ee_pos, ee_quat):
     return qpos
 
 def smooth_ik(target_qpos):
-    """Rate-limits joint targets instead of exponentially smoothing them.
-    Exponential smoothing always lags behind the target by construction,
-    even for small legitimate motions. Rate-limiting tracks the target
-    immediately as long as the per-step change is under MAX_STEP_RAD, and
-    only slows down for genuinely large/fast jumps."""
     global current_qpos
 
     if current_qpos is None:
@@ -431,21 +420,33 @@ def smooth_ik(target_qpos):
     current_qpos = current_qpos + delta
     return current_qpos
 
-STALE_THRESHOLD_S = 0.15   # if no new IMU sample in this long, the arm is running on old data
+STALE_THRESHOLD_S = 0.15
 _was_stale = False
+_pos_was_stale = False
 
 def update_imu():
-    global imu_pos, imu_quat, imu_quat_ee, imu_ref_quat_raw, _was_stale
+    global imu_pos, imu_quat, imu_quat_ee, imu_ref_quat_raw, pos_ref_raw
+    global _was_stale, _pos_was_stale
 
-    # Position: keyboard only — the BNO085 gives orientation, not translation.
-    for sym, action in KEY_MAP.items():
-        if sym not in keys_pressed:
-            continue
-        _, axis, delta = action
-        imu_pos[axis] += delta
+    # ── Translation: read the ESP32's already-filtered position directly.
+    # No integration, no Kalman math here anymore -- just apply the same
+    # "delta from calibration reference" pattern already used for
+    # orientation, so re-centering (SPACE) works the same way for both.
+    pos_age = imu_node.pos_data_age()
+    if pos_age > POS_STALE_THRESHOLD_S and not _pos_was_stale:
+        print(f"[IMU] Position STALE: no new sample for {pos_age:.2f}s — check ESP32 link")
+        _pos_was_stale = True
+    elif pos_age <= POS_STALE_THRESHOLD_S and _pos_was_stale:
+        print(f"[IMU] Position recovered after {pos_age:.3f}s gap")
+        _pos_was_stale = False
 
-    # Flag stale data so you can see, live, when the arm is "frozen" waiting
-    # on the transport rather than anything in this script.
+    if pos_age <= POS_STALE_THRESHOLD_S:
+        raw_pos, got_pos = imu_node.get_pos()
+        if got_pos:
+            imu_pos[:] = imu_ref_pos + (raw_pos - pos_ref_raw) * POS_SCALE
+    # else: position feed lost -> imu_pos holds its last value rather than
+    # snapping somewhere wrong from stale data.
+
     age = imu_node.data_age()
     if age > STALE_THRESHOLD_S and not _was_stale:
         print(f"[IMU] STALE: no new sample for {age:.2f}s — check the micro-ROS link")
@@ -454,31 +455,31 @@ def update_imu():
         print(f"[IMU] Recovered after {age:.3f}s gap")
         _was_stale = False
 
-    # Orientation: pulled live from the sensor every frame.
     raw_quat, got_data = imu_node.get_quat()
     if got_data:
         delta_raw = quat_mul(quat_conjugate(imu_ref_quat_raw), raw_quat)
         delta_raw /= np.linalg.norm(delta_raw)
 
-        delta_raw[1] *= -1  # local X-axis rotation direction
-        delta_raw[2] *= -1  # local Y-axis rotation direction
-        # Visual gizmo — raw sensor delta, drives imu_entity directly.
+        delta_raw[1] *= -1
+        delta_raw[2] *= -1
         imu_quat = quat_mul(imu_ref_quat, delta_raw)
-        # EE-facing accumulator — same delta; R_CALIB (in imu_to_ee_target) does the
-        # full IMU-axes -> EE-axes remap on its own now, no separate mirroring needed.
         imu_quat_ee = quat_mul(imu_ref_quat_ee, delta_raw)
 
     if pyglet_key.SPACE in keys_pressed:
-        imu_pos[:]     = imu_ref_pos
         imu_quat[:]    = imu_ref_quat
         imu_quat_ee[:] = imu_ref_quat_ee
         if got_data:
-            imu_ref_quat_raw = raw_quat.copy()   # re-zero to the current physical pose
+            imu_ref_quat_raw = raw_quat.copy()
+        # Re-zero translation reference to wherever the ESP32-filtered
+        # position currently is, mirroring the orientation re-zero above.
+        raw_pos, got_pos = imu_node.get_pos()
+        if got_pos:
+            pos_ref_raw = raw_pos.copy()
 
     imu_quat    /= np.linalg.norm(imu_quat)
     imu_quat_ee /= np.linalg.norm(imu_quat_ee)
 
-DEBUG_CALIBRATION = True   # set False once R_CALIB is confirmed correct
+DEBUG_CALIBRATION = True
 _calib_print_counter = 0
 
 def imu_to_ee_target():
@@ -499,11 +500,12 @@ def imu_to_ee_target():
 
     if DEBUG_CALIBRATION:
         _calib_print_counter += 1
-        if _calib_print_counter % 30 == 0:   # ~twice a second at 60 FPS
+        if _calib_print_counter % 30 == 0:
             imu_euler = np.round(quat_to_euler_deg(delta_quat_imu_ee), 1)
             ee_euler  = np.round(quat_to_euler_deg(delta_quat_ee), 1)
             print(f"[CALIB] IMU-local roll/pitch/yaw: {imu_euler}  ->  "
                   f"EE-local roll/pitch/yaw: {ee_euler}")
+            print(f"[CALIB] imu_pos delta: {np.round(imu_pos - imu_ref_pos, 4)}")
 
 
 try:
@@ -526,6 +528,7 @@ try:
         ur5e.control_dofs_position(final_qpos, dofs_idx_local=dofs_idx)
         scene.step()
         step_count += 1
+
 
 except KeyboardInterrupt:
     print("\n[IMU] Simulation stopped.")

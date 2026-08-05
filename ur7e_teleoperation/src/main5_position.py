@@ -14,13 +14,19 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from rclpy.signals import SignalHandlerOptions
+from rclpy.executors import MultiThreadedExecutor
 from sensor_msgs.msg import Imu as ImuMsg
+from geometry_msgs.msg import Vector3Stamped
+from std_srvs.srv import Trigger
 
 gs.init(backend=gs.gpu)
 
 # ── Live IMU input (BNO085 over micro-ROS) ───────────────────────────────
-# CONFIGURE these two to match your setup:
 IMU_TOPIC = '/imu/data'   # <-- change to the actual topic your micro-ROS agent publishes on
+
+# ── Live camera position input (AprilTag node) ───────────────────────────
+CAMERA_POS_TOPIC = 'probe/position_delta'   # <-- from d435i_apriltag_position_node.py
+CALIBRATE_SERVICE = 'probe/calibrate_zero'
 
 class BNO085Subscriber(Node):
     """Subscribes to the live IMU topic and exposes the latest orientation
@@ -33,15 +39,12 @@ class BNO085Subscriber(Node):
         self._quat = np.array([1.0, 0.0, 0.0, 0.0])
         self._has_data = False
         self._last_recv_time = None
-        # micro-ROS publishers are almost always BEST_EFFORT; this profile
-        # matches that. If you get zero messages, check
-        # `ros2 topic info <topic> --verbose` and adjust QoS here.
         self.create_subscription(ImuMsg, topic_name, self._callback, qos_profile_sensor_data)
         self.get_logger().info(f'Subscribed to {topic_name}, waiting for data...')
 
     def _callback(self, msg):
         if len(msg.orientation_covariance) and msg.orientation_covariance[0] == -1.0:
-            return  # driver is reporting "orientation not available"
+            return
         q = msg.orientation
         with self._lock:
             self._quat = np.array([q.w, q.x, q.y, q.z])
@@ -53,18 +56,65 @@ class BNO085Subscriber(Node):
             return self._quat.copy(), self._has_data
 
     def data_age(self):
-        """Seconds since the last message arrived. inf if none has arrived yet."""
         with self._lock:
             if self._last_recv_time is None:
                 return float('inf')
             return time.time() - self._last_recv_time
 
 
+class CameraPositionSubscriber(Node):
+    """Subscribes to probe/position_delta (geometry_msgs/Vector3Stamped)
+    published by the AprilTag+depth node. Exposes the latest XYZ delta
+    (camera optical frame, meters, relative to that node's own calibrated
+    zero) in a thread-safe way. Also holds a client for that node's
+    /probe/calibrate_zero service so this script's SPACE-to-recenter can
+    re-zero the camera source too, not just the local accumulator."""
+
+    def __init__(self, topic_name, calibrate_service_name):
+        super().__init__('genesis_teleop_camera_subscriber')
+        self._lock = threading.Lock()
+        self._delta = np.array([0.0, 0.0, 0.0])
+        self._has_data = False
+        self._last_recv_time = None
+        self.create_subscription(Vector3Stamped, topic_name, self._callback, qos_profile_sensor_data)
+        self.calibrate_client = self.create_client(Trigger, calibrate_service_name)
+        self.get_logger().info(f'Subscribed to {topic_name}, waiting for data...')
+
+    def _callback(self, msg):
+        with self._lock:
+            self._delta = np.array([msg.vector.x, msg.vector.y, msg.vector.z])
+            self._has_data = True
+            self._last_recv_time = time.time()
+
+    def get_delta(self):
+        with self._lock:
+            return self._delta.copy(), self._has_data
+
+    def data_age(self):
+        with self._lock:
+            if self._last_recv_time is None:
+                return float('inf')
+            return time.time() - self._last_recv_time
+
+    def request_recalibrate(self):
+        """Fire-and-forget call to re-zero the camera node's reference pose."""
+        if self.calibrate_client.service_is_ready():
+            self.calibrate_client.call_async(Trigger.Request())
+        else:
+            self.get_logger().warn(f'{CALIBRATE_SERVICE} not available — camera node running?')
+
+
 # signal_handler_options=NO keeps rclpy from grabbing SIGINT, so Ctrl+C
 # still raises KeyboardInterrupt in the main loop exactly as before.
 rclpy.init(args=None, signal_handler_options=SignalHandlerOptions.NO)
-imu_node = BNO085Subscriber(IMU_TOPIC)
-threading.Thread(target=rclpy.spin, args=(imu_node,), daemon=True).start()
+imu_node    = BNO085Subscriber(IMU_TOPIC)
+camera_node = CameraPositionSubscriber(CAMERA_POS_TOPIC, CALIBRATE_SERVICE)
+
+# Both nodes spin on one executor / one background thread.
+executor = MultiThreadedExecutor()
+executor.add_node(imu_node)
+executor.add_node(camera_node)
+threading.Thread(target=executor.spin, daemon=True).start()
 
 scene = gs.Scene(
     profiling_options=gs.options.ProfilingOptions(
@@ -226,6 +276,22 @@ while True:
 imu_ref_quat_raw = _raw_quat.copy()   # current physical sensor pose = "home"
 print(f"[IMU] Calibrated. Raw ref quat (w,x,y,z): {np.round(imu_ref_quat_raw, 4)}")
 
+print(f"[CAM] Waiting for first sample on {CAMERA_POS_TOPIC} ...")
+_wait_start = time.time()
+while True:
+    _cam_delta, _cam_got = camera_node.get_delta()
+    if _cam_got:
+        break
+    if time.time() - _wait_start > 10.0:
+        print(f"[CAM] WARNING: no data received on {CAMERA_POS_TOPIC} after 10s — "
+              f"check that d435i_apriltag_position_node.py is running and the "
+              f"tag is visible. Falling back to keyboard position control "
+              f"until data arrives.")
+        break
+    time.sleep(0.05)
+else:
+    print("[CAM] Camera position data received.")
+
 imu_pos      = np.array([1.5, 0.0, 1.0], dtype=float)
 # Matches the imu_entity Box's euler=(90, 180, 90) (Genesis: scipy extrinsic
 # x-y-z, degrees), converted to Genesis's own w-x-y-z quaternion convention
@@ -239,8 +305,6 @@ imu_ref_quat = imu_quat.copy()
 # EE-facing rotation accumulator (kept separate from imu_quat so the
 # imu_entity gizmo's visual behavior stays completely unchanged; this one
 # has pitch/yaw inverted per-axis before composition, see EE_AXIS_SIGN).
-# Deliberately left at identity — it's a pure math reference for driving
-# the arm, not tied to the gizmo's cosmetic starting pose above.
 imu_quat_ee     = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
 imu_ref_quat_ee = imu_quat_ee.copy()
 
@@ -251,10 +315,7 @@ MOVE_STEP     = 0.005
 ROT_STEP      = 0.02
 POS_SCALE     = 1.0
 MAX_TILT_RAD  = np.radians(90)
-MAX_STEP_RAD  = 0.08   # per-step joint-angle rate limit (rad) — replaces exponential
-                       # SMOOTH, which added a fixed lag every frame regardless of
-                       # motion size. Raise this for even less lag, lower it if
-                       # sensor jitter starts showing up as visible arm shake.
+MAX_STEP_RAD  = 0.08
 MAX_JUMP_RAD  = 10.3
 
 FORCE_PRINT_EVERY = 30
@@ -263,16 +324,36 @@ step_count = 0
 last_good_qpos = None
 current_qpos   = None
 
+# ── Camera-driven position control ────────────────────────────────────────
+USE_CAMERA_POSITION = True   # False -> falls back to arrow-key/E/Q translation
+CAM_POS_SCALE        = 1.0    # meters (camera delta) -> meters (EE delta). Tune down
+                               # first if motion feels too fast/twitchy.
+CAM_STALE_THRESHOLD_S = 0.2   # treat camera as stale if no sample in this long
+
+# Camera optical frame convention: +X right, +Y down, +Z away from camera
+# (into the scene). This mapping is a STARTING GUESS, not verified — same
+# situation R_CALIB was in before you checked it against the real gizmo.
+# VERIFY: move the probe along one axis at a time in front of the camera,
+# watch which EE axis actually moves in the viewer, and fix signs/pairing
+# below until "probe toward camera" = arm moves the direction you expect,
+# "probe left/right" and "probe up/down" likewise.
+def camera_delta_to_ee_delta(cam_delta):
+    cx, cy, cz = cam_delta
+    dx =  cz    # depth (probe moving away from camera) -> EE +X (forward)
+    dy = -cx    # camera lateral -> EE Y (sign TBD, verify)
+    dz = -cy    # camera vertical (down positive in optical frame) -> EE +Z (up)
+    return np.array([dx, dy, dz]) * CAM_POS_SCALE
+
+_cam_was_stale = False
+
 # ── Ultrasound image-per-body-part config ────────────────────────────────
-# Add a new body part -> just add one line here pointing at its frames folder.
 BODY_PART_IMAGE_FOLDERS = {
     'T8':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/T8/',
     'L5':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/L5/',
-    # 'Pelvis': '/home/deviant/IIIT_intern/assets/ultrasound_images/pelvis/',
     'L3':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/L3',
     'T12':     '/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/USG_data/T12',
 }
-IMAGE_FRAME_RATE = 10   # frames per second, tweak later
+IMAGE_FRAME_RATE = 10
 
 
 def quat_mul(q1, q2):
@@ -295,7 +376,6 @@ def quat_conjugate(q):
     return np.array([q[0], -q[1], -q[2], -q[3]])
 
 def quat_to_euler_deg(q):
-
     w, x, y, z = q
     sinr_cosp = 2 * (w*x + y*z)
     cosr_cosp = 1 - 2 * (x*x + y*y)
@@ -311,17 +391,6 @@ def quat_to_euler_deg(q):
 
     return np.degrees([roll, pitch, yaw])
 
-# ── Frame calibration (IMU-local axes -> EE-local axes) ─────────────────
-# Superseded: replaced based on direct visual comparison of the imu_entity
-# gizmo's axes against the end-effector's axes. Observed: IMU-X matches
-# EE-X, IMU-Y matches EE-Z. A pure axis swap can't be a real rotation
-# (it'd be a mirror, determinant -1), so the third pairing is forced:
-# IMU-Z must map to -EE-Y (not +EE-Y) to keep this a valid rotation.
-#
-# VERIFY: if the arm's motion looks inverted specifically on the axis that
-# was "forced" here (Z_imu / green-axis pairing), swap the line below to
-# axis_angle_to_quat([1, 0, 0], -np.pi / 2) instead — that's the other
-# valid option (Z->+Y, but then Y->-Z instead of the pairing you saw).
 R_CALIB = axis_angle_to_quat([1, 0, 0], np.pi / 2)
 
 def frame_transform(delta, R):
@@ -337,16 +406,9 @@ KEY_MAP = {
     pyglet_key.E        : ('pos', 2,  MOVE_STEP),
     pyglet_key.Q        : ('pos', 2, -MOVE_STEP),
 }
-# Rotation used to come from Y/U/J/K/B/N here — it now comes live from the
-# BNO085 instead (see update_imu()), so only translation keys remain.
-# mirror_pitch_yaw() used to live here as a guessed sign-flip; it's gone
-# now that R_CALIB (above) encodes the actual measured IMU->EE axis
-# correspondence — stacking the old heuristic on top would double-count.
 
 def clamp_rotation(q, q_ref, max_angle):
-    """Clamp q's total rotation relative to q_ref to at most max_angle.
-    Generic version of the original clamp body, reusable for both
-    imu_quat (visual gizmo) and imu_quat_ee (EE-driving)."""
+    """Clamp q's total rotation relative to q_ref to at most max_angle."""
     delta = quat_mul(quat_conjugate(q_ref), q)
 
     w = np.clip(delta[0], -1.0, 1.0)
@@ -370,10 +432,6 @@ def clamp_rotation(q, q_ref, max_angle):
     return q
 
 def clamp_imu_rotation():
-    """Clamp BOTH accumulators independently: imu_quat (drives the visual
-    gizmo) and imu_quat_ee (drives the arm). Previously only imu_quat was
-    clamped here, so the gizmo respected MAX_TILT_RAD but the arm — which
-    reads from imu_quat_ee — did not."""
     global imu_quat, imu_quat_ee
     imu_quat    = clamp_rotation(imu_quat,    imu_ref_quat,    MAX_TILT_RAD)
     imu_quat_ee = clamp_rotation(imu_quat_ee, imu_ref_quat_ee, MAX_TILT_RAD)
@@ -416,11 +474,7 @@ def safe_ik(ee_pos, ee_quat):
     return qpos
 
 def smooth_ik(target_qpos):
-    """Rate-limits joint targets instead of exponentially smoothing them.
-    Exponential smoothing always lags behind the target by construction,
-    even for small legitimate motions. Rate-limiting tracks the target
-    immediately as long as the per-step change is under MAX_STEP_RAD, and
-    only slows down for genuinely large/fast jumps."""
+    """Rate-limits joint targets instead of exponentially smoothing them."""
     global current_qpos
 
     if current_qpos is None:
@@ -431,21 +485,39 @@ def smooth_ik(target_qpos):
     current_qpos = current_qpos + delta
     return current_qpos
 
-STALE_THRESHOLD_S = 0.15   # if no new IMU sample in this long, the arm is running on old data
+STALE_THRESHOLD_S = 0.15
 _was_stale = False
 
 def update_imu():
-    global imu_pos, imu_quat, imu_quat_ee, imu_ref_quat_raw, _was_stale
+    global imu_pos, imu_quat, imu_quat_ee, imu_ref_quat_raw, _was_stale, _cam_was_stale
 
-    # Position: keyboard only — the BNO085 gives orientation, not translation.
-    for sym, action in KEY_MAP.items():
-        if sym not in keys_pressed:
-            continue
-        _, axis, delta = action
-        imu_pos[axis] += delta
+    # ── Position: camera-driven (falls back to keyboard if camera has no
+    # data / is stale, or if USE_CAMERA_POSITION is False) ────────────────
+    cam_delta_raw, cam_got = camera_node.get_delta()
+    cam_age = camera_node.data_age()
+    cam_is_fresh = cam_got and cam_age <= CAM_STALE_THRESHOLD_S
 
-    # Flag stale data so you can see, live, when the arm is "frozen" waiting
-    # on the transport rather than anything in this script.
+    if cam_is_fresh and not _cam_was_stale is False:
+        pass  # placeholder to keep flow explicit; real staleness log below
+
+    if cam_got and cam_age > CAM_STALE_THRESHOLD_S and not _cam_was_stale:
+        print(f"[CAM] STALE: no new sample for {cam_age:.2f}s — check the camera node")
+        _cam_was_stale = True
+    elif cam_got and cam_age <= CAM_STALE_THRESHOLD_S and _cam_was_stale:
+        print(f"[CAM] Recovered after {cam_age:.3f}s gap")
+        _cam_was_stale = False
+
+    if USE_CAMERA_POSITION and cam_is_fresh:
+        imu_pos[:] = imu_ref_pos + camera_delta_to_ee_delta(cam_delta_raw)
+    else:
+        # Fallback: keyboard translation (unchanged from original script)
+        for sym, action in KEY_MAP.items():
+            if sym not in keys_pressed:
+                continue
+            _, axis, delta = action
+            imu_pos[axis] += delta
+
+    # Flag stale IMU data.
     age = imu_node.data_age()
     if age > STALE_THRESHOLD_S and not _was_stale:
         print(f"[IMU] STALE: no new sample for {age:.2f}s — check the micro-ROS link")
@@ -460,12 +532,9 @@ def update_imu():
         delta_raw = quat_mul(quat_conjugate(imu_ref_quat_raw), raw_quat)
         delta_raw /= np.linalg.norm(delta_raw)
 
-        delta_raw[1] *= -1  # local X-axis rotation direction
-        delta_raw[2] *= -1  # local Y-axis rotation direction
-        # Visual gizmo — raw sensor delta, drives imu_entity directly.
+        delta_raw[1] *= -1
+        delta_raw[2] *= -1
         imu_quat = quat_mul(imu_ref_quat, delta_raw)
-        # EE-facing accumulator — same delta; R_CALIB (in imu_to_ee_target) does the
-        # full IMU-axes -> EE-axes remap on its own now, no separate mirroring needed.
         imu_quat_ee = quat_mul(imu_ref_quat_ee, delta_raw)
 
     if pyglet_key.SPACE in keys_pressed:
@@ -473,12 +542,13 @@ def update_imu():
         imu_quat[:]    = imu_ref_quat
         imu_quat_ee[:] = imu_ref_quat_ee
         if got_data:
-            imu_ref_quat_raw = raw_quat.copy()   # re-zero to the current physical pose
+            imu_ref_quat_raw = raw_quat.copy()
+        camera_node.request_recalibrate()   # re-zero the camera node too
 
     imu_quat    /= np.linalg.norm(imu_quat)
     imu_quat_ee /= np.linalg.norm(imu_quat_ee)
 
-DEBUG_CALIBRATION = True   # set False once R_CALIB is confirmed correct
+DEBUG_CALIBRATION = True
 _calib_print_counter = 0
 
 def imu_to_ee_target():
@@ -499,7 +569,7 @@ def imu_to_ee_target():
 
     if DEBUG_CALIBRATION:
         _calib_print_counter += 1
-        if _calib_print_counter % 30 == 0:   # ~twice a second at 60 FPS
+        if _calib_print_counter % 30 == 0:
             imu_euler = np.round(quat_to_euler_deg(delta_quat_imu_ee), 1)
             ee_euler  = np.round(quat_to_euler_deg(delta_quat_ee), 1)
             print(f"[CALIB] IMU-local roll/pitch/yaw: {imu_euler}  ->  "
@@ -528,7 +598,8 @@ try:
         scene.step()
 
 except KeyboardInterrupt:
-    print("\n[IMU] Simulation stopped.")
+    print("\n[IMU/CAM] Simulation stopped.")
 finally:
     imu_node.destroy_node()
+    camera_node.destroy_node()
     rclpy.shutdown()

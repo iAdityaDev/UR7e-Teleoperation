@@ -125,11 +125,9 @@ void setup() {
 
   Serial.println("connecting wifi transport...");
   // set_microros_transports();
-
-  
-  // set_microros_wifi_transports("OPPO", "123456789", "10.71.240.181", 8888);
-  set_microros_wifi_transports("dev", "123456789", "10.42.0.1", 8888);
-  // Serial.println("wifi transport up");
+  set_microros_wifi_transports("OPPO", "123456789", "10.71.240.181", 8888);
+  // set_microros_wifi_transports("dev", "123456789", "10.42.0.1", 8888);
+  Serial.println("wifi transport up");
 
   // Disable WiFi power-save (modem sleep). Without this the ESP32
   // periodically sleeps the radio between beacon intervals to save power,
@@ -187,11 +185,7 @@ void loop() {
               imu_msg.linear_acceleration.x = sensorValue.un.linearAcceleration.x;
               imu_msg.linear_acceleration.y = sensorValue.un.linearAcceleration.y;
               imu_msg.linear_acceleration.z = sensorValue.un.linearAcceleration.z;
-              Serial.println(String(imu_msg.linear_acceleration.x) + ", " + 
-              String(imu_msg.linear_acceleration.y) + ", " + 
-              String(imu_msg.linear_acceleration.z));
               have_new_data = true;
-              delay(200);
               break;
 
             default:
