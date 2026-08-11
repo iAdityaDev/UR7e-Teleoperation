@@ -167,7 +167,7 @@ imu_entity = scene.add_entity(
 
 human = scene.add_entity(
     gs.morphs.URDF(
-        file='/home/deviant/human-model-generator/code/models/humanModels/kevin_ultrasound.urdf',
+        file='/home/deviant/human-model-generator/code/models/humanModels/kevin_ultrasound_fused.urdf',
         pos=(0.6, 0.0, 0.55),
         euler=(0, 270, 90),
         fixed=True,

@@ -59,13 +59,16 @@ imu_entity = scene.add_entity(
     gs.morphs.Box(size=(0.06, 0.04, 0.01), pos=(1.5, 0.0, 1.0), fixed=True)
 )
 
-
+# ── CHANGED: point at the fused-collision URDF (Pelvis+L5+L3+T12+T8 merged
+# into one collision mesh -- see merge_torso_collision.py / fuse_torso_urdf.py) ──
 human = scene.add_entity(
     gs.morphs.URDF(
-        file='/home/deviant/human-model-generator/code/models/humanModels/kevin_ultrasound.urdf',
+        file='/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/kevin_ultrasound_fused.urdf',
         pos=(0.6, 0.0, 0.55),
         euler=(0, 270, 90),
         fixed=True,
+        merge_fixed_links=True,
+        links_to_keep=[],
     )
 )
 
@@ -137,7 +140,7 @@ home_joint_angles = np.array([
 ])
 
 print("Moving arm to home pose")
-for _ in range(300):
+for _ in range(700):
     ur5e.control_dofs_position(home_joint_angles, dofs_idx_local=dofs_idx)
     scene.step()
 
@@ -388,48 +391,6 @@ def imu_to_ee_target():
     ee_target_quat /= np.linalg.norm(ee_target_quat)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def get_probe_contact_force():
     """Return the 3D contact force vector on probe_link from contact with
     the human, or None if there's no probe contact right now."""
@@ -474,10 +435,69 @@ def print_contact_forces():
         print(f"probe contact force = {np.round(force, 3)} N | "
               f"mag = {np.linalg.norm(force):.3f} N")
 
+
+# ── Torso body-part detection (Z-bucketed, since Pelvis/L5/L3/T12/T8 are
+# now fused into ONE collision link on Pelvis to eliminate self-collision
+# fracture between overlapping-by-design seam meshes) ────────────────────
+#
+# Boundaries are the midpoints between each segment's fused mesh center,
+# expressed in Pelvis-local frame Z (computed from the URDF's joint-chain
+# Z offsets). Below the first boundary = Pelvis; above the last = T8.
+TORSO_Z_BOUNDS = [
+    (0.04475, 'L5'),
+    (0.12050, 'L3'),
+    (0.19214, 'T12'),
+    (0.28917, 'T8'),
+]
+
+_pelvis_pos_cache = None
+_pelvis_quat_cache = None
+
+def _get_pelvis_pose():
+    global _pelvis_pos_cache, _pelvis_quat_cache
+    if _pelvis_pos_cache is None:
+        pelvis_link = human.get_link('Pelvis')
+        p = pelvis_link.get_pos()
+        q = pelvis_link.get_quat()
+        if hasattr(p, 'cpu'):
+            p = p.cpu().numpy()
+        if hasattr(q, 'cpu'):
+            q = q.cpu().numpy()
+        _pelvis_pos_cache = np.array(p, dtype=float)
+        _pelvis_quat_cache = np.array(q, dtype=float)
+    return _pelvis_pos_cache, _pelvis_quat_cache
+
+def _rotate_vec_by_quat_conj(q, v):
+    """Rotate v by the inverse (conjugate) of unit quat q."""
+    qc = quat_conjugate(q)
+    v_quat = np.array([0.0, v[0], v[1], v[2]])
+    rotated = quat_mul(quat_mul(qc, v_quat), q)
+    return rotated[1:]
+
+def _world_pos_to_pelvis_local(world_pos):
+    pelvis_pos, pelvis_quat = _get_pelvis_pose()
+    delta = np.array(world_pos, dtype=float) - pelvis_pos
+    return _rotate_vec_by_quat_conj(pelvis_quat, delta)
+
+def _classify_torso_z(local_z):
+    """Return the body-part name for a Pelvis-local-frame Z height."""
+    if local_z < TORSO_Z_BOUNDS[0][0]:
+        return 'Pelvis'
+    for i in range(len(TORSO_Z_BOUNDS) - 1):
+        lo = TORSO_Z_BOUNDS[i][0]
+        hi = TORSO_Z_BOUNDS[i + 1][0]
+        if lo <= local_z < hi:
+            return TORSO_Z_BOUNDS[i][1]
+    return TORSO_Z_BOUNDS[-1][1]  # T8, above the last boundary
+
+
 def get_probe_contact_body_part():
     """Return a list of (body_part_name, force_magnitude) tuples for every
-    human link currently in contact with the probe, sorted by force
-    magnitude descending. Returns None if there's no probe contact."""
+    human region currently in contact with the probe, sorted by force
+    magnitude descending. Torso contacts (fused into the Pelvis link) are
+    reclassified by contact-point Z height; everything else (arms, legs,
+    head, ...) uses the normal per-link lookup unchanged. Returns None if
+    there's no probe contact."""
     contacts = ur5e.get_contacts(with_entity=human)
     n_contacts = len(contacts['position'])
 
@@ -500,6 +520,10 @@ def get_probe_contact_body_part():
     if hasattr(forces_b, 'cpu'):
         forces_b = forces_b.cpu().numpy()
 
+    positions = contacts['position']
+    if hasattr(positions, 'cpu'):
+        positions = positions.cpu().numpy()
+
     probe_mask = (link_a == probe_link.idx) | (link_b == probe_link.idx)
     if not np.any(probe_mask):
         return None
@@ -512,12 +536,20 @@ def get_probe_contact_body_part():
     human_force    = np.where(
         a_is_probe[:, None], forces_b[probe_mask], forces_a[probe_mask]
     )
+    contact_pos    = positions[probe_mask]
 
-    # Aggregate force magnitude per unique human link (a link can appear
-    # in multiple contact points, e.g. probe tip touching a curved surface)
+    pelvis_idx = human.get_link('Pelvis').idx
+
+    # Aggregate force magnitude per unique body part (Z-bucketed for the
+    # fused torso, per-link name for everything else)
     part_forces = {}
-    for idx, f in zip(human_link_idx, human_force):
-        name = human_link_names.get(int(idx), f"unknown_link_{int(idx)}")
+    for idx, f, pos in zip(human_link_idx, human_force, contact_pos):
+        idx = int(idx)
+        if idx == pelvis_idx:
+            local = _world_pos_to_pelvis_local(pos)
+            name = _classify_torso_z(local[2])
+        else:
+            name = human_link_names.get(idx, f"unknown_link_{idx}")
         part_forces[name] = part_forces.get(name, 0.0) + np.linalg.norm(f)
 
     if not part_forces:
