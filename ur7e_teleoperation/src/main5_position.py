@@ -17,6 +17,7 @@ from rclpy.signals import SignalHandlerOptions
 from rclpy.executors import MultiThreadedExecutor
 from sensor_msgs.msg import Imu as ImuMsg
 from geometry_msgs.msg import Vector3Stamped
+from std_msgs.msg import Bool
 from std_srvs.srv import Trigger
 
 gs.init(backend=gs.gpu)
@@ -24,9 +25,11 @@ gs.init(backend=gs.gpu)
 # ── Live IMU input (BNO085 over micro-ROS) ───────────────────────────────
 IMU_TOPIC = '/imu/data'   # <-- change to the actual topic your micro-ROS agent publishes on
 
-# ── Live camera position input (AprilTag node) ───────────────────────────
-CAMERA_POS_TOPIC = 'probe/position_delta'   # <-- from d435i_apriltag_position_node.py
-CALIBRATE_SERVICE = 'probe/calibrate_zero'
+# ── Live camera position input (multi-tag AprilTag node) ─────────────────
+CAMERA_POS_TOPIC    = 'probe/position_delta'
+CAMERA_STATUS_TOPIC = 'probe/tracking_status'   # True = fresh detection, False = no tag visible
+CALIBRATE_SERVICE   = 'probe/calibrate_zero'
+
 
 class BNO085Subscriber(Node):
     """Subscribes to the live IMU topic and exposes the latest orientation
@@ -63,32 +66,42 @@ class BNO085Subscriber(Node):
 
 
 class CameraPositionSubscriber(Node):
-    """Subscribes to probe/position_delta (geometry_msgs/Vector3Stamped)
-    published by the AprilTag+depth node. Exposes the latest XYZ delta
-    (camera optical frame, meters, relative to that node's own calibrated
-    zero) in a thread-safe way. Also holds a client for that node's
-    /probe/calibrate_zero service so this script's SPACE-to-recenter can
-    re-zero the camera source too, not just the local accumulator."""
+    """Subscribes to probe/position_delta AND probe/tracking_status from the
+    multi-tag AprilTag node. tracking_status is the authoritative signal for
+    freeze-on-occlusion: when it's False, the camera node did not publish a
+    new position this frame (some or all 9 tags were unreadable), and this
+    subscriber's get_delta() keeps returning the last good value with
+    is_tracking=False so the caller can decide to freeze."""
 
-    def __init__(self, topic_name, calibrate_service_name):
+    def __init__(self, pos_topic, status_topic, calibrate_service_name):
         super().__init__('genesis_teleop_camera_subscriber')
         self._lock = threading.Lock()
         self._delta = np.array([0.0, 0.0, 0.0])
         self._has_data = False
         self._last_recv_time = None
-        self.create_subscription(Vector3Stamped, topic_name, self._callback, qos_profile_sensor_data)
-        self.calibrate_client = self.create_client(Trigger, calibrate_service_name)
-        self.get_logger().info(f'Subscribed to {topic_name}, waiting for data...')
+        self._is_tracking = False   # latest tracking_status value
 
-    def _callback(self, msg):
+        self.create_subscription(Vector3Stamped, pos_topic, self._pos_callback, qos_profile_sensor_data)
+        self.create_subscription(Bool, status_topic, self._status_callback, qos_profile_sensor_data)
+        self.calibrate_client = self.create_client(Trigger, calibrate_service_name)
+        self.get_logger().info(f'Subscribed to {pos_topic} and {status_topic}, waiting for data...')
+
+    def _pos_callback(self, msg):
         with self._lock:
             self._delta = np.array([msg.vector.x, msg.vector.y, msg.vector.z])
             self._has_data = True
             self._last_recv_time = time.time()
 
-    def get_delta(self):
+    def _status_callback(self, msg):
         with self._lock:
-            return self._delta.copy(), self._has_data
+            self._is_tracking = msg.data
+
+    def get_delta(self):
+        """Returns (delta, has_ever_had_data, is_tracking_this_frame).
+        Caller should only apply the delta to motion when is_tracking is True;
+        otherwise hold the last commanded position (freeze)."""
+        with self._lock:
+            return self._delta.copy(), self._has_data, self._is_tracking
 
     def data_age(self):
         with self._lock:
@@ -97,7 +110,6 @@ class CameraPositionSubscriber(Node):
             return time.time() - self._last_recv_time
 
     def request_recalibrate(self):
-        """Fire-and-forget call to re-zero the camera node's reference pose."""
         if self.calibrate_client.service_is_ready():
             self.calibrate_client.call_async(Trigger.Request())
         else:
@@ -108,9 +120,8 @@ class CameraPositionSubscriber(Node):
 # still raises KeyboardInterrupt in the main loop exactly as before.
 rclpy.init(args=None, signal_handler_options=SignalHandlerOptions.NO)
 imu_node    = BNO085Subscriber(IMU_TOPIC)
-camera_node = CameraPositionSubscriber(CAMERA_POS_TOPIC, CALIBRATE_SERVICE)
+camera_node = CameraPositionSubscriber(CAMERA_POS_TOPIC, CAMERA_STATUS_TOPIC, CALIBRATE_SERVICE)
 
-# Both nodes spin on one executor / one background thread.
 executor = MultiThreadedExecutor()
 executor.add_node(imu_node)
 executor.add_node(camera_node)
@@ -123,7 +134,6 @@ scene = gs.Scene(
     vis_options=gs.options.VisOptions(
         show_world_frame=True,
         world_frame_size=1.0,
-        # show_link_frame=True,
         ambient_light=(0.1, 0.1, 0.1),
     ),
     viewer_options=gs.options.ViewerOptions(
@@ -164,10 +174,9 @@ imu_entity = scene.add_entity(
     gs.morphs.Box(size=(0.06, 0.04, 0.01), pos=(1.5, 0.0, 1.0), euler=(90, 180, 90), fixed=True)
 )
 
-
 human = scene.add_entity(
     gs.morphs.URDF(
-        file='/home/deviant/human-model-generator/code/models/humanModels/kevin_ultrasound_fused.urdf',
+        file='/home/deviant/IIIT_intern/src/ur7e_teleoperation/assets/kevin_ultrasound_fused.urdf',
         pos=(0.6, 0.0, 0.55),
         euler=(0, 270, 90),
         fixed=True,
@@ -235,14 +244,14 @@ ur5e.set_dofs_force_range(
 home_joint_angles = np.array([
      0.0,
     -1.5708,
-     1.5708,    
+     1.5708,
     -1.5708,
     -1.5708,
      0.0,
 ])
 
 print("Moving arm to home pose")
-for _ in range(300):
+for _ in range(700):
     ur5e.control_dofs_position(home_joint_angles, dofs_idx_local=dofs_idx)
     scene.step()
 
@@ -273,38 +282,30 @@ while True:
         break
     time.sleep(0.05)
 
-imu_ref_quat_raw = _raw_quat.copy()   # current physical sensor pose = "home"
+imu_ref_quat_raw = _raw_quat.copy()
 print(f"[IMU] Calibrated. Raw ref quat (w,x,y,z): {np.round(imu_ref_quat_raw, 4)}")
 
 print(f"[CAM] Waiting for first sample on {CAMERA_POS_TOPIC} ...")
 _wait_start = time.time()
 while True:
-    _cam_delta, _cam_got = camera_node.get_delta()
+    _cam_delta, _cam_got, _cam_tracking = camera_node.get_delta()
     if _cam_got:
         break
     if time.time() - _wait_start > 10.0:
         print(f"[CAM] WARNING: no data received on {CAMERA_POS_TOPIC} after 10s — "
-              f"check that d435i_apriltag_position_node.py is running and the "
-              f"tag is visible. Falling back to keyboard position control "
-              f"until data arrives.")
+              f"check that multi_apriltag_position_node.py is running and at "
+              f"least one tag is visible. Falling back to keyboard position "
+              f"control until data arrives.")
         break
     time.sleep(0.05)
 else:
     print("[CAM] Camera position data received.")
 
 imu_pos      = np.array([1.5, 0.0, 1.0], dtype=float)
-# Matches the imu_entity Box's euler=(90, 180, 90) (Genesis: scipy extrinsic
-# x-y-z, degrees), converted to Genesis's own w-x-y-z quaternion convention
-# and verified against scipy.spatial.transform.Rotation directly. Without
-# this, imu_quat would default to identity and the gizmo would snap away
-# from its intended pose the instant the main loop starts.
 imu_quat     = np.array([0.5, -0.5, 0.5, -0.5], dtype=float)
 imu_ref_pos  = imu_pos.copy()
 imu_ref_quat = imu_quat.copy()
 
-# EE-facing rotation accumulator (kept separate from imu_quat so the
-# imu_entity gizmo's visual behavior stays completely unchanged; this one
-# has pitch/yaw inverted per-axis before composition, see EE_AXIS_SIGN).
 imu_quat_ee     = np.array([1.0, 0.0, 0.0, 0.0], dtype=float)
 imu_ref_quat_ee = imu_quat_ee.copy()
 
@@ -324,27 +325,25 @@ step_count = 0
 last_good_qpos = None
 current_qpos   = None
 
-# ── Camera-driven position control ────────────────────────────────────────
-USE_CAMERA_POSITION = True   # False -> falls back to arrow-key/E/Q translation
-CAM_POS_SCALE        = 1.0    # meters (camera delta) -> meters (EE delta). Tune down
-                               # first if motion feels too fast/twitchy.
-CAM_STALE_THRESHOLD_S = 0.2   # treat camera as stale if no sample in this long
+# ── Camera-driven position control with freeze-on-occlusion ──────────────
+USE_CAMERA_POSITION = True
+CAM_POS_SCALE        = 1.0    # meters (camera delta) -> meters (EE delta)
 
-# Camera optical frame convention: +X right, +Y down, +Z away from camera
-# (into the scene). This mapping is a STARTING GUESS, not verified — same
-# situation R_CALIB was in before you checked it against the real gizmo.
-# VERIFY: move the probe along one axis at a time in front of the camera,
-# watch which EE axis actually moves in the viewer, and fix signs/pairing
-# below until "probe toward camera" = arm moves the direction you expect,
-# "probe left/right" and "probe up/down" likewise.
+# Camera optical frame convention: +X right, +Y down, +Z away from camera.
+# UNVERIFIED mapping — verify per-axis against the real viewer before trusting it.
 def camera_delta_to_ee_delta(cam_delta):
     cx, cy, cz = cam_delta
-    dx =  cz    # depth (probe moving away from camera) -> EE +X (forward)
-    dy = -cx    # camera lateral -> EE Y (sign TBD, verify)
-    dz = -cy    # camera vertical (down positive in optical frame) -> EE +Z (up)
+    dx =  cz
+    dy = -cx
+    dz = -cy
     return np.array([dx, dy, dz]) * CAM_POS_SCALE
 
-_cam_was_stale = False
+# Frozen position hold: when the camera node reports tracking_status=False
+# (no tag currently readable across all 9), we do NOT update imu_pos from
+# the camera at all -- imu_pos simply keeps its last value from the previous
+# frame, so ee_target_pos (computed from imu_pos below) stays put too.
+_last_cam_tracking = False
+_occlusion_start_time = None
 
 # ── Ultrasound image-per-body-part config ────────────────────────────────
 BODY_PART_IMAGE_FOLDERS = {
@@ -394,7 +393,6 @@ def quat_to_euler_deg(q):
 R_CALIB = axis_angle_to_quat([1, 0, 0], np.pi / 2)
 
 def frame_transform(delta, R):
-    """Re-express a local-frame delta rotation in another frame's local axes."""
     return quat_mul(quat_mul(R, delta), quat_conjugate(R))
 
 
@@ -408,9 +406,7 @@ KEY_MAP = {
 }
 
 def clamp_rotation(q, q_ref, max_angle):
-    """Clamp q's total rotation relative to q_ref to at most max_angle."""
     delta = quat_mul(quat_conjugate(q_ref), q)
-
     w = np.clip(delta[0], -1.0, 1.0)
     total_angle = 2 * np.arccos(abs(w))
 
@@ -474,7 +470,6 @@ def safe_ik(ee_pos, ee_quat):
     return qpos
 
 def smooth_ik(target_qpos):
-    """Rate-limits joint targets instead of exponentially smoothing them."""
     global current_qpos
 
     if current_qpos is None:
@@ -489,35 +484,37 @@ STALE_THRESHOLD_S = 0.15
 _was_stale = False
 
 def update_imu():
-    global imu_pos, imu_quat, imu_quat_ee, imu_ref_quat_raw, _was_stale, _cam_was_stale
+    global imu_pos, imu_quat, imu_quat_ee, imu_ref_quat_raw, _was_stale
+    global _last_cam_tracking, _occlusion_start_time
 
-    # ── Position: camera-driven (falls back to keyboard if camera has no
-    # data / is stale, or if USE_CAMERA_POSITION is False) ────────────────
-    cam_delta_raw, cam_got = camera_node.get_delta()
-    cam_age = camera_node.data_age()
-    cam_is_fresh = cam_got and cam_age <= CAM_STALE_THRESHOLD_S
+    # ── Position: camera-driven, with freeze-on-occlusion ─────────────────
+    cam_delta_raw, cam_got, cam_tracking = camera_node.get_delta()
 
-    if cam_is_fresh and not _cam_was_stale is False:
-        pass  # placeholder to keep flow explicit; real staleness log below
-
-    if cam_got and cam_age > CAM_STALE_THRESHOLD_S and not _cam_was_stale:
-        print(f"[CAM] STALE: no new sample for {cam_age:.2f}s — check the camera node")
-        _cam_was_stale = True
-    elif cam_got and cam_age <= CAM_STALE_THRESHOLD_S and _cam_was_stale:
-        print(f"[CAM] Recovered after {cam_age:.3f}s gap")
-        _cam_was_stale = False
-
-    if USE_CAMERA_POSITION and cam_is_fresh:
-        imu_pos[:] = imu_ref_pos + camera_delta_to_ee_delta(cam_delta_raw)
+    if USE_CAMERA_POSITION and cam_got:
+        if cam_tracking:
+            # Fresh detection this frame -> update position normally.
+            imu_pos[:] = imu_ref_pos + camera_delta_to_ee_delta(cam_delta_raw)
+            if not _last_cam_tracking:
+                gap = time.time() - _occlusion_start_time if _occlusion_start_time else 0.0
+                print(f"[CAM] Tag reacquired after {gap:.2f}s occlusion — resuming tracking")
+            _occlusion_start_time = None
+        else:
+            # No tag currently readable -> FREEZE. Do not touch imu_pos;
+            # it keeps whatever value it had last frame, so ee_target_pos
+            # (derived from imu_pos in imu_to_ee_target) stays put too.
+            if _last_cam_tracking:
+                _occlusion_start_time = time.time()
+                print("[CAM] All tags occluded — freezing probe position")
+        _last_cam_tracking = cam_tracking
     else:
-        # Fallback: keyboard translation (unchanged from original script)
+        # No camera data has ever arrived -> keyboard fallback (unchanged).
         for sym, action in KEY_MAP.items():
             if sym not in keys_pressed:
                 continue
             _, axis, delta = action
             imu_pos[axis] += delta
 
-    # Flag stale IMU data.
+    # Flag stale IMU data (orientation source — separate from camera freeze).
     age = imu_node.data_age()
     if age > STALE_THRESHOLD_S and not _was_stale:
         print(f"[IMU] STALE: no new sample for {age:.2f}s — check the micro-ROS link")
@@ -526,7 +523,8 @@ def update_imu():
         print(f"[IMU] Recovered after {age:.3f}s gap")
         _was_stale = False
 
-    # Orientation: pulled live from the sensor every frame.
+    # Orientation: pulled live from the sensor every frame (unaffected by
+    # camera occlusion — you're relying on the camera for position only).
     raw_quat, got_data = imu_node.get_quat()
     if got_data:
         delta_raw = quat_mul(quat_conjugate(imu_ref_quat_raw), raw_quat)
@@ -543,7 +541,7 @@ def update_imu():
         imu_quat_ee[:] = imu_ref_quat_ee
         if got_data:
             imu_ref_quat_raw = raw_quat.copy()
-        camera_node.request_recalibrate()   # re-zero the camera node too
+        camera_node.request_recalibrate()
 
     imu_quat    /= np.linalg.norm(imu_quat)
     imu_quat_ee /= np.linalg.norm(imu_quat_ee)
@@ -574,7 +572,6 @@ def imu_to_ee_target():
             ee_euler  = np.round(quat_to_euler_deg(delta_quat_ee), 1)
             print(f"[CALIB] IMU-local roll/pitch/yaw: {imu_euler}  ->  "
                   f"EE-local roll/pitch/yaw: {ee_euler}")
-
 
 
 try:

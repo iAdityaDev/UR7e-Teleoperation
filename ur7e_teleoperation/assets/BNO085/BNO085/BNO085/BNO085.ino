@@ -125,8 +125,8 @@ void setup() {
 
   Serial.println("connecting wifi transport...");
   // set_microros_transports();
-  set_microros_wifi_transports("OPPO", "123456789", "10.71.240.181", 8888);
-  // set_microros_wifi_transports("dev", "123456789", "10.42.0.1", 8888);
+  // set_microros_wifi_transports("OPPO", "123456789", "10.71.240.181", 8888);
+  set_microros_wifi_transports("dev", "123456789", "10.42.0.1", 8888);
   Serial.println("wifi transport up");
 
   // Disable WiFi power-save (modem sleep). Without this the ESP32
